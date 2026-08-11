@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "freeglm[video-edit] @ git+https://github.com/yenns7/freeglm.git@main",
+        "freeglm[video-edit] @ git+https://github.com/yenns7/freeglm.git@v1.0.1",
         "freeglm-video-edit"
       ]
     }

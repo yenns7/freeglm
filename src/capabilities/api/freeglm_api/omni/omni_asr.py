@@ -15,8 +15,6 @@ class OmniAsrArgs(BaseModel):
         default=None, description="Spoken-language hint (zh, en, ja, …). Auto-detected if omitted."
     )
     model: Optional[str] = Field(default=None, description="Omni model id (default: qwen3.5-omni-plus).")
-    api_key: Optional[str] = Field(default=None, description="DashScope API key (defaults to DASHSCOPE_API_KEY).")
-    base_url: Optional[str] = Field(default=None, description="OpenAI-compatible base URL override.")
     dry_run: bool = Field(default=False, description="Return the request that would be sent, without calling the API.")
 
 

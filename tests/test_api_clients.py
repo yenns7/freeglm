@@ -178,6 +178,19 @@ def test_retry_predicate_propagates_non_matching(monkeypatch):
     assert calls["n"] == 1  # predicate rejects → propagates on first try, no retry
 
 
+def test_retry_error_message_redacts_signed_urls_and_credentials():
+    error = RuntimeError(
+        "GET https://bucket.example/file?OSSAccessKeyId=user&Signature=top-secret "
+        "Authorization: Bearer credential"
+    )
+
+    message = sr.redact_sensitive_error(error)
+
+    assert "top-secret" not in message
+    assert "credential" not in message
+    assert "https://bucket.example/file?<redacted>" in message
+
+
 # ── B1: poll + download survive a transient blip on a billed job ─────
 
 

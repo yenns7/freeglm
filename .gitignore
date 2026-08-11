@@ -7,4 +7,14 @@ dist/
 *.egg-info/
 *.egg
 .venv*/
+
+# Local credentials and machine-specific configuration. Commit only the empty template.
+.env
+.env.*
+!.env.example
+.freeglm/
+*.pem
+*.key
+*.p12
+*.pfx
 eval/

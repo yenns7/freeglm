@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "freeglm"
 dynamic = ["version"]
-description = "FreeGLM: an Agent Skills + MCP tools platform for vision-language models — read/visualize any file + vision-language APIs, hierarchical graph memory for long-video QA, media generation/video-edit, and Blender/FreeCAD 3D-CAD capabilities."
+description = "FreeGLM: composable Agent Skills and MCP tools for supported local-file I/O, vision-language APIs, long-video graph memory, media generation and editing, and Blender/FreeCAD workflows."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -13,6 +13,7 @@ license = "Apache-2.0"
 # (Blender/FreeCAD addons) into the wheel's .dist-info/licenses/.
 license-files = [
     "LICENSE",
+    "NOTICE",
     "src/capabilities/blender/NOTICE.md",
     "src/capabilities/freecad/NOTICE.md",
     "src/capabilities/blender/freeglm_blender/vendor/LICENSE",
@@ -43,6 +44,7 @@ dependencies = [
 Homepage = "https://github.com/yenns7/freeglm"
 Repository = "https://github.com/yenns7/freeglm"
 Issues = "https://github.com/yenns7/freeglm/issues"
+Upstream = "https://github.com/QwenLM/Qwen-MM-Plugins"
 
 [project.optional-dependencies]
 # capability extras — compose via the profiles below

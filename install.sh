@@ -11,12 +11,15 @@
 # addresses — the whole grouped list) to a single fixed config file (~/.freeglm/config)
 # that every harness reads — GUI or terminal — so you set it once.
 #
-# Env overrides: QMP_REPO (git URL or local checkout), QMP_REF (branch/tag), NO_COLOR.
+# Public env overrides: FREEGLM_REPO (git URL or local checkout), FREEGLM_REF (tag/SHA),
+# FREEGLM_NO_TUI, FREEGLM_SPIN_TIMEOUT, and NO_COLOR. Legacy QMP_* aliases remain accepted.
 
 set -uo pipefail
 
-REPO_URL="${QMP_REPO:-https://github.com/yenns7/freeglm.git}"
-REPO_REF="${QMP_REF:-main}"
+REPO_URL="${FREEGLM_REPO:-${QMP_REPO:-https://github.com/yenns7/freeglm.git}}"
+REPO_REF="${FREEGLM_REF:-${QMP_REF:-v1.0.1}}"
+FREEGLM_NO_TUI="${FREEGLM_NO_TUI:-${QMP_NO_TUI:-}}"
+FREEGLM_SPIN_TIMEOUT="${FREEGLM_SPIN_TIMEOUT:-${QMP_SPIN_TIMEOUT:-15}}"
 MARKETPLACE="freeglm"
 CONFIG_DIR="${FREEGLM_CONFIG_DIR:-$HOME/.freeglm}"
 CONFIG_FILE="${FREEGLM_CONFIG:-$CONFIG_DIR/config}"
@@ -65,6 +68,7 @@ CONFIG_SPEC=(
   "ASR_SERVER_URLS|0|cred||self-hosted ASR fallback URLs (comma-separated)"
   "FREEGLM_CACHE|0|dirs|OS cache dir|cache dir for derived render artifacts"
   "FREEGLM_FFMPEG_TIMEOUT|0|dirs|120|ffmpeg/ffprobe timeout seconds"
+  "FREEGLM_CHAT_TIMEOUT|0|dirs|600|OpenAI-compatible chat request timeout seconds"
   "FREEGLM_MAX_TOTAL_FRAMES|0|dirs|600|max frames sampled from a video"
   "GRAPH_MEMORY_PATH|0|memory||graph_memory.json path (overrides a passed video path)"
   "EMBEDDINGS_PATH|0|memory||embeddings.npz path"
@@ -114,7 +118,7 @@ export PATH
 # Non-interactive forms (--verify / --help) run headless (CI, curl|bash -s -- --verify) and need no
 # terminal; every other invocation is an interactive TUI that reads keys from the tty (fd 3).
 NONINTERACTIVE=0
-case "${1:-}" in --verify|-h|--help) NONINTERACTIVE=1; QMP_NO_TUI=1 ;; esac
+case "${1:-}" in --verify|-h|--help) NONINTERACTIVE=1; FREEGLM_NO_TUI=1 ;; esac
 # ── an interactive terminal, even under `curl | bash` (stdin is the pipe → read from /dev/tty) ──
 if [ "$NONINTERACTIVE" = 1 ]; then
   exec 3</dev/null                                   # headless: no prompts, no terminal required
@@ -161,20 +165,20 @@ mark()  { [ "$1" = ok ] && printf '%b✓%b' "$CG" "$C0" || printf '%b·%b' "$CD"
 
 # Animate a braille spinner while running <cmd> in the background; capture its stdout into <outvar>.
 # Falls back to a plain synchronous run when stdout isn't a TTY (pipes/CI). Returns <cmd>'s exit code.
-# Bounded by QMP_SPIN_TIMEOUT seconds (default 15; 0 = unbounded): a wedged harness `list` CLI (network,
+# Bounded by FREEGLM_SPIN_TIMEOUT seconds (default 15; 0 = unbounded): a wedged harness `list` CLI (network,
 # or an auth prompt that gets EOF under curl|bash) would otherwise spin forever. On timeout the child is
 # killed and <outvar> left empty — every caller treats empty detection output as "unknown / nothing
 # installed", so a stuck detection degrades to an unfiltered menu instead of a frozen installer. Job
 # control is off under curl|bash (one process group), so we kill only the child pid, never the group.
 spin() {  # spin <message> <outvar> -- cmd...
   local msg=$1 outvar=$2; shift 2; [ "${1:-}" = "--" ] && shift
-  if [ ! -t 1 ] || [ -n "${QMP_NO_TUI:-}" ]; then
+  if [ ! -t 1 ] || [ -n "${FREEGLM_NO_TUI:-}" ]; then
     local _o; _o=$("$@"); local _rc=$?; printf -v "$outvar" '%s' "$_o"; return $_rc
   fi
   local tmp; tmp=$(mktemp "${TMPDIR:-/tmp}/qmp.XXXXXX"); _QMP_SPIN_TMP=$tmp
   ( "$@" >"$tmp" 2>/dev/null ) &
   local pid=$! i=0 ticks=0 timedout=0
-  local maxticks=$(( ${QMP_SPIN_TIMEOUT:-15} * 10 ))       # loop sleeps 0.1s → 10 ticks/second
+  local maxticks=$(( FREEGLM_SPIN_TIMEOUT * 10 ))       # loop sleeps 0.1s → 10 ticks/second
   local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   printf '\033[?25l'
   while kill -0 "$pid" 2>/dev/null; do
@@ -188,7 +192,7 @@ spin() {  # spin <message> <outvar> -- cmd...
   printf '\r\033[2K\033[?25h'
   if [ "$timedout" = 1 ]; then
     printf -v "$outvar" '%s' ''; rm -f "$tmp"; _QMP_SPIN_TMP=''
-    warn "timed out after ${QMP_SPIN_TIMEOUT:-15}s: ${msg%%...*} — continuing"
+    warn "timed out after ${FREEGLM_SPIN_TIMEOUT}s: ${msg%%...*} — continuing"
     return 124
   fi
   printf -v "$outvar" '%s' "$(cat "$tmp")"; rm -f "$tmp"; _QMP_SPIN_TMP=''
@@ -399,7 +403,7 @@ cfg_raw() {  # cfg_raw KEY
 }
 
 # cfg_display KEY SECRET DEFAULT → a PLAIN (no color — safe inside menu_pick items, which pad by raw
-# length) current-value cell: masked for secrets, `(env)`-tagged when the environment overrides the
+# length) current-value cell: secrets shown only as `set`, `(env)`-tagged when the environment overrides the
 # file, `default: X` when unset but a default exists, `not set` when unset with no default, truncated.
 cfg_display() {  # cfg_display KEY SECRET DEFAULT
   local key=$1 secret=$2 default=$3 env_val file_val val
@@ -410,7 +414,7 @@ cfg_display() {  # cfg_display KEY SECRET DEFAULT
   elif [ -n "$default" ]; then printf 'default: %s' "$(_fit "$default" 21)"; return
   else printf 'not set'; return; fi
   if [ "$secret" = 1 ]; then
-    if [ ${#val} -gt 9 ]; then val="${val:0:3}...${val: -2}"; else val='set'; fi
+    val='set'
   fi
   val=$(_fit "$val" 30)
   [ -n "$env_val" ] && printf '%s (env)' "$val" || printf '%s' "$val"
@@ -445,7 +449,7 @@ ensure_uv() {
 }
 
 # ── the ONE place the uvx launch spec is built — verify / manual all reuse it ──
-# cap_spec <cap> → the package the harness itself also launches with. A local QMP_REPO is a
+# cap_spec <cap> → the package the harness itself also launches with. A local FREEGLM_REPO is a
 # PEP-508 file URL (no meaningless git ref); remote repositories keep the selected branch/tag/SHA.
 is_local_repo() {
   case "$1" in file://*) return 0 ;; esac
@@ -463,7 +467,7 @@ cap_spec() {
         printf 'freeglm[%s] @ file://%s' "$cap" "$path"
       else
         case "$repo" in
-          /*|./*|../*) printf 'QMP_REPO is not a directory: %s\n' "$repo" >&2; return 1 ;;
+          /*|./*|../*) printf 'FREEGLM_REPO is not a directory: %s\n' "$repo" >&2; return 1 ;;
           git+*) printf 'freeglm[%s] @ %s@%s' "$cap" "$repo" "$REPO_REF" ;;
           *) printf 'freeglm[%s] @ git+%s@%s' "$cap" "$repo" "$REPO_REF" ;;
         esac
@@ -516,7 +520,7 @@ install_for() {  # install_for <harness> <plugin...>
       run_cmd "$bin" plugins marketplace add "$REPO_URL" || return
       for p in "$@"; do run_cmd "$bin" plugins install "${p}@${MARKETPLACE}" || failed=1; done ;;
     openclaw)
-      for p in "$@"; do run_cmd "$bin" plugins install "$p" --marketplace "$REPO_URL" || failed=1; done ;;
+      for p in "$@"; do run_cmd "$bin" plugins install "$p" --marketplace "$REPO_URL" --force || failed=1; done ;;
     qwen-code)
       # native extension install: reuses the .claude-plugin marketplace (skill + MCP), one per cap.
       for p in "$@"; do run_cmd "$bin" extensions install "${REPO_URL}:${p}" --consent || failed=1; done ;;
@@ -551,8 +555,10 @@ _cfg_has() {
   case "$h" in
     qwen-code) [ -d "$HOME/.qwen/extensions/$id" ] ||
                { [ -f "$HOME/.qwen/settings.json" ] && grep -q "\"$id\"" "$HOME/.qwen/settings.json"; } ;;
-    gemini)    [ -d "$HOME/.gemini/extensions/$id" ] || [ -d "$HOME/.gemini/skills/$id" ] ||
-               { [ -f "$HOME/.gemini/settings.json" ] && grep -q "\"$id\"" "$HOME/.gemini/settings.json"; } ;;
+    gemini)
+      [ -d "$HOME/.gemini/skills/$id" ] || return 1
+      is_skill_only "$2" && return 0
+      [ -f "$HOME/.gemini/settings.json" ] && grep -q "\"$id\"" "$HOME/.gemini/settings.json" ;;
     *) return 1 ;;
   esac
 }
@@ -582,7 +588,7 @@ _detect_mask() {
 
 # ── selection widgets (shared by every list: main menu, harness pick, capability pick) ──
 # All read keys from /dev/tty (fd 3) so they work under `curl | bash`, and fall back to a numbered
-# prompt when stdout isn't a terminal or QMP_NO_TUI is set.
+# prompt when stdout isn't a terminal or FREEGLM_NO_TUI is set.
 
 # How long to wait for an escape sequence's trailing bytes (arrow keys). bash 4+ only: a lone Esc is
 # instant there (`read -t 0` in _read_key gates it), so this just bounds arrow decoding (0.1s). bash 3.2
@@ -626,7 +632,7 @@ _read_key() {
   esac
 }
 
-_tty_ui() { [ -t 1 ] && [ -z "${QMP_NO_TUI:-}" ]; }
+_tty_ui() { [ -t 1 ] && [ -z "${FREEGLM_NO_TUI:-}" ]; }
 
 # Put the tty (fd 3) into cbreak mode — non-canonical, no echo, deliver each byte immediately — so the
 # arrow-key menus below react to a keystroke at once instead of waiting for Enter. This is essential
@@ -879,9 +885,8 @@ EOF
     pi install npm:pi-mcp-adapter      # pi's MCP goes through this adapter; skill-only caps need just the copy
 
   D) ZCode — add this repo as a plugin marketplace (Claude-compatible) and install per capability.
-     ZCode ships no CLI on PATH, so drive it from the ZCode UI / its plugin manager:
-    marketplace add  $REPO_URL
-    install          freeglm-core@freeglm
+     ZCode ships no CLI on PATH. Open Settings → Plugins → Create → Add marketplace,
+     enter $REPO_URL, then select freeglm-core and click Install.
      The repo ships a zcode-ready root .zcode-plugin/marketplace.json + per-capability
      .zcode-plugin/plugin.json — see docs/en/installation.md → ZCode for the full guide.
 
@@ -1116,6 +1121,6 @@ case "${1:-}" in
   verify)    do_verify ;;
   uninstall) do_uninstall ;;
   --verify)  shift; run_caps_noninteractive "$@" ;;
-  -h|--help) banner; printf '\n  Usage: install.sh [install|configure|verify|uninstall]   (no arg = interactive menu)\n         install.sh --verify [caps]   # non-interactive: check installed (or listed) caps\n\n  (No update action — uvx re-resolves the pinned git ref and pulls new commits on each launch.)\n\n' ;;
+  -h|--help) banner; printf '\n  Usage: install.sh [install|configure|verify|uninstall]   (no arg = interactive menu)\n         install.sh --verify [caps]   # non-interactive: check installed (or listed) caps\n\n  Public overrides: FREEGLM_REPO, FREEGLM_REF, FREEGLM_NO_TUI, FREEGLM_SPIN_TIMEOUT.\n  Legacy QMP_REPO, QMP_REF, QMP_NO_TUI, and QMP_SPIN_TIMEOUT aliases remain supported.\n\n  (No update action — uvx reuses the immutable git ref selected by FREEGLM_REF.)\n\n' ;;
   *)         menu ;;
 esac

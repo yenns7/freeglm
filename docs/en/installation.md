@@ -21,6 +21,10 @@ Windows environment; native Windows has not yet been validated.
 
 Harnesses without a plugin marketplace register the **skill** and **MCP server** in their own config. **Qwen Code** and **Gemini CLI** are automated by the [guided installer](../../README.md#-installation) (`bash install.sh` → pick the harness); the rest (opencode, pi, QwenPaw, …) are manual — per-harness steps below. For anything else, the easiest path is to **ask the agent to do it for you** ("install `freeglm-<cap>`").
 
+For installer automation, the public overrides are `FREEGLM_REPO`, `FREEGLM_REF`,
+`FREEGLM_NO_TUI`, and `FREEGLM_SPIN_TIMEOUT`; the older `QMP_*` names remain compatibility
+aliases. The default remote release is the immutable `v1.0.1` tag.
+
 Each capability is `freeglm-<cap>` with uvx extras `[<cap>]`; in every block below, replace `<cap>` with a capability name (`core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`).
 
 Claude Code can also install this way — the only difference from the marketplace path is the tool name: marketplace installs carry a plugin prefix + a server key (the capability's own name, e.g. `freeglm-<cap>`), whereas a manual `mcp add` uses the server name you choose. Taking a capability's `read_image` as an example:
@@ -35,7 +39,7 @@ Claude Code can also install this way — the only difference from the marketpla
 ln -s "$(pwd)/src/capabilities/<cap>/skill" ~/.claude/skills/freeglm-<cap>
 # 2) MCP (for local code, replace --from with "$(pwd)[<cap>]")
 claude mcp add freeglm-<cap> -- \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
 ```
 
 To switch capabilities, replace the skill path, the `[<cap>]` profile, and the entry name `freeglm-<cap>` all together with those of the target capability.
@@ -50,19 +54,22 @@ To switch capabilities, replace the skill path, the `[<cap>]` profile, and the e
   "mcp": {
     "freeglm-<cap>": {
       "type": "local",
-      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-<cap>"],
-      "environment": { "DASHSCOPE_API_KEY": "{env:DASHSCOPE_API_KEY}" },
+      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"],
       "enabled": true
     }
   }
 }
 ```
 
+Do not add API-key placeholders to this block. The child process inherits variables that are
+actually present and FreeGLM independently reads its private `~/.freeglm/config`; an empty
+interpolation can otherwise mask a configured value.
+
 ```bash
 cp -r src/capabilities/<cap>/skill ~/.config/opencode/skills/freeglm-<cap>   # opencode also reads ~/.claude/skills/
 ```
 
-Headless: `opencode run --auto "…"`. (A custom OpenAI-compatible provider must mark the model image-capable with `modalities`, or opencode drops returned images.)
+Headless: `opencode run "…"`. (A custom OpenAI-compatible provider must mark the model image-capable with `modalities`, or opencode drops returned images.)
 
 ### Qwen Code
 
@@ -76,7 +83,7 @@ Or register just the MCP server (then copy the skill into `~/.qwen/skills/freegl
 
 ```bash
 qwen mcp add freeglm-<cap> --scope user --trust --timeout 600000 \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
 ```
 
 Headless: `qwen -p "…" --yolo -o text`. Uninstall: `qwen extensions uninstall freeglm-<cap>`.
@@ -87,11 +94,11 @@ Headless: `qwen -p "…" --yolo -o text`. Uninstall: `qwen extensions uninstall 
 
 ```bash
 gemini mcp add -s user freeglm-<cap> \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
 gemini skills install https://github.com/yenns7/freeglm.git --path src/capabilities/<cap>/skill --consent
 ```
 
-From a local checkout, `gemini extensions link src/capabilities/<cap>` bundles both. MCP loads only in **trusted** folders (trust it when prompted). Headless: `gemini -p "…" -y`. Uninstall: `gemini mcp remove -s user freeglm-<cap>` + `gemini skills uninstall freeglm-<cap>`.
+The capability directories are not standalone Gemini extensions (they intentionally have no `gemini-extension.json`), so use the two native commands above for both remote and local installations instead of `gemini extensions link`. MCP loads only in **trusted** folders (trust it when prompted). Headless: `gemini -p "…" -y`. Uninstall: `gemini mcp remove -s user freeglm-<cap>` + `gemini skills uninstall freeglm-<cap>`.
 
 > Gemini CLI only talks to the **Google Gemini API** — no external / OpenAI-compatible model providers.
 
@@ -111,25 +118,23 @@ pi install npm:pi-mcp-adapter                                               # on
   "settings": { "toolPrefix": "none" },
   "mcpServers": { "freeglm-<cap>": {
     "command": "uvx",
-    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-<cap>"],
-    "env": { "DASHSCOPE_API_KEY": "${DASHSCOPE_API_KEY}" },
-    "directTools": ["read_image", "ocr", "visualize"]
+    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
   } }
 }
 ```
 
-Skill-only capabilities (edu-agent) work with just the skill copy. Headless: `pi -p "…"`.
+Do not add a generic `directTools` list: tool names differ by capability. The server inherits real process environment values and independently reads `~/.freeglm/config`, so omitting `env` also avoids an empty interpolation masking a configured key. Skill-only capabilities (edu-agent) work with just the skill copy. Headless: `pi -p "…"`.
 
 ### QwenPaw 2.0
 
-QwenPaw 2.0 has no plugin marketplace of its own, so it can only be installed manually. Using `<cap>` as an example:
+QwenPaw 2.0 has no plugin marketplace of its own, so it can only be installed manually. Replace `<agent_id>` with the active agent/workspace id (`default` for the default agent) and `<cap>` with the capability:
 
 ```bash
 # 1) skill
-cp -r src/capabilities/<cap>/skill ~/.qwenpaw/workspaces/default/skills/freeglm-<cap>
+cp -r src/capabilities/<cap>/skill ~/.qwenpaw/workspaces/<agent_id>/skills/freeglm-<cap>
 qwenpaw skills list      # triggers reconcile, registering it in the manifest (disabled at this point)
 qwenpaw skills config    # interactively check to enable
-# 2) MCP: add it to mcp.clients in ~/.qwenpaw/workspaces/default/agent.json (no CLI — edit the file directly; hot-reloaded)
+# 2) MCP: add it to mcp.clients in ~/.qwenpaw/workspaces/<agent_id>/agent.json (no CLI — edit the file directly; hot-reloaded)
 ```
 
 ```json
@@ -141,7 +146,7 @@ qwenpaw skills config    # interactively check to enable
         "enabled": true,
         "transport": "stdio",
         "command": "uvx",
-        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-<cap>"]
+        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
       }
     }
   }
@@ -150,14 +155,11 @@ qwenpaw skills config    # interactively check to enable
 
 ### ZCode
 
-ZCode is a Claude-compatible plugin marketplace harness: add this repo as a marketplace and
-install each capability with the native `install` verb (from the ZCode UI, or its plugin manager —
-ZCode ships no CLI on `PATH`). Using `<cap>` as an example:
-
-```text
-marketplace add  https://github.com/yenns7/freeglm.git
-install          freeglm-<cap>@freeglm
-```
+ZCode is a Claude-compatible plugin marketplace harness and ships no plugin CLI on `PATH`. In an
+open workspace, use the actual UI flow: open **Settings → Plugins**, click **Create → Add
+marketplace**, enter `https://github.com/yenns7/freeglm.git`, then find `freeglm-<cap>` in the
+Personal marketplace and click **Install**. Use the marketplace source panel's **Refresh** action
+when a newer version is published.
 
 The repository is zcode-ready out of the box:
 
@@ -190,7 +192,7 @@ The VL tools (`vision_chat` / `ocr` / `grounding`) need `DASHSCOPE_API_KEY` **or
 
 How to see which system tools are missing:
 
-- Check with uvx: `uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap> --check-system`.
+- Check with uvx: `uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap> --check-system`.
 - At server startup, if an installed extra is missing its system tool, a warning line is printed to stderr.
 - At actual tool-call time, you get a "please install X" text message, while other tools keep working.
 
@@ -209,9 +211,9 @@ How to see which system tools are missing:
 
 > Network boundary: `npx hyperframes init` and the TTS calls need internet; the **render itself is offline** (so fonts / KaTeX / GSAP are self-hosted into `dist/`). Full checklist: the skill's `SKILL.md` → "Prerequisites".
 
-### Environment variables
+### Common environment variables
 
-Config is read from the shell environment, falling back to `~/.freeglm/config` (KEY=VALUE lines, read when a var isn't already in the environment — so GUI-launched harnesses pick it up too). In practice only the two API keys above are commonly needed; everything else is optional. To edit that file, run the installer's **Configure** action or `<entry> --setup` — both now browse & edit the **whole** config grouped by category (credentials, dirs/limits, video-memory, OSS, Blender/FreeCAD hosts, edu-agent), not just the API key. For automation: `<entry> --set KEY=VALUE …` / `<entry> --unset KEY …`.
+Config is read from the shell environment, falling back to the installer-managed `~/.freeglm/config` when a variable is absent, so GUI-launched harnesses pick it up too. Configure credentials interactively with `bash install.sh configure` (or `<entry> --setup`); do not paste secret values into commands or documentation. Automation may provide the common environment variable names below through its secret store. This table is intentionally not exhaustive: [`install.sh`](../../install.sh) `CONFIG_SPEC`, browsable through `bash install.sh configure`, is the executable complete catalog and is kept in sync with the runtime.
 
 | Variable | Used by | Default |
 |---|---|---|
@@ -224,6 +226,7 @@ Config is read from the shell environment, falling back to `~/.freeglm/config` (
 | `SAM3_SERVER_URL` | `segmentation` (SAM3 server) | *(required for segmentation)* |
 | `ASR_SERVER_URLS` | `transcribe_audio` self-hosted fallback (comma-separated, round-robined) when DashScope fails | *unset → DashScope only* |
 | `FREEGLM_FFMPEG_TIMEOUT` | ffmpeg timeout, seconds | `120` |
+| `FREEGLM_CHAT_TIMEOUT` | OpenAI-compatible chat request timeout, seconds | `600` |
 | `FREEGLM_MAX_TOTAL_FRAMES` | max frames sampled from a video | `600` |
 | `FREEGLM_CACHE` | cache dir for derived render artifacts | OS cache dir |
 | `FREEGLM_CONFIG_DIR` | override the config dir that GUI harnesses read for keys | `~/.freeglm` |
@@ -236,7 +239,8 @@ Config is read from the shell environment, falling back to `~/.freeglm/config` (
 ```
 src/
 ├── capabilities/            #   one directory per capability (may contain a skill and/or its companion MCP tools)
-│   ├── core/                #     vision: read_image / read_video / visualize / ocr / grounding / …
+│   ├── core/                #     local I/O: read_image / read_video / visualize / crop / draw_bbox / …
+│   ├── api/                 #     cloud media understanding: vision_chat / ocr / grounding / Omni / ASR / segmentation
 │   ├── video-memory/        #     long-video memory: hierarchical graph + semantic search
 │   ├── video-edit/          #     video editing + image/video/audio generation
 │   ├── blender/             #     Blender thin client (bundled addon: vendor/ + --launch-app)

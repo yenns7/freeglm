@@ -101,46 +101,42 @@ def default_vl_model(provider: str | None = None) -> str:
 def resolve_openai_endpoint(arguments: dict[str, Any], provider: str | None = None) -> tuple[str, str]:
     """Resolve (base_url, api_key) for an OpenAI-compatible call.
 
-    Provider precedence: explicit `provider` argument → DashScope env → default; with `auto` the
+    Provider precedence: explicit `provider` argument → configured environment → default; with `auto` the
     Zhipu GLM backend wins when ZHIPU_API_KEY is set and DASHSCOPE_API_KEY is not (so GLM-4.6V-Flash
-    works with zero DashScope config). Explicit base_url/api_key arguments always win. api_key falls
-    back to "EMPTY" so local/self-hosted servers that ignore auth still work.
+    works with zero DashScope config). A programmatic explicit ``base_url`` is never paired with an
+    environment key: callers must provide the key in the same trusted call, otherwise auth is
+    ``"EMPTY"``. This defense prevents an untrusted URL from exfiltrating a configured credential.
     """
     p = _provider_of(arguments, provider)
     base_url = arguments.get("base_url")
     api_key = arguments.get("api_key")
 
+    # Explicit endpoints are potentially untrusted. Never copy a user's environment credential to
+    # one implicitly; an internal/programmatic caller that truly needs a custom endpoint must provide
+    # its matching key in the same call. MCP schemas do not expose either field.
+    if base_url:
+        return base_url, api_key or "EMPTY"
+
     if p == "zhipu":
         return (
-            base_url or get_env("ZHIPU_BASE_URL") or DEFAULT_ZHIPU_BASE_URL,
+            get_env("ZHIPU_BASE_URL") or DEFAULT_ZHIPU_BASE_URL,
             api_key or get_env("ZHIPU_API_KEY") or "EMPTY",
         )
     if p == "dashscope":
         return (
-            base_url or get_env("DASHSCOPE_BASE_URL") or DEFAULT_DASHSCOPE_BASE_URL,
+            get_env("DASHSCOPE_BASE_URL") or DEFAULT_DASHSCOPE_BASE_URL,
             api_key or get_env("DASHSCOPE_API_KEY") or "EMPTY",
         )
 
-    # auto: explicit args win; anything they leave unset falls to the effective provider — GLM
-    # when only Zhipu is configured, else DashScope. (Falling back to DashScope for the missing
-    # half of an explicit pair would send a Zhipu key to dashscope.aliyuncs.com, or an "EMPTY"
-    # key to a custom GLM proxy — both wrong.)
+    # auto: an explicit key may use the effective provider's standard/configured URL. Endpoint-only
+    # overrides returned above deliberately get no environment credential.
     zhipu = _zhipu_selected()
-    if base_url or api_key:
+    if api_key:
         return (
-            base_url
-            or (
-                (get_env("ZHIPU_BASE_URL") or DEFAULT_ZHIPU_BASE_URL)
-                if zhipu
-                else (get_env("DASHSCOPE_BASE_URL") or DEFAULT_DASHSCOPE_BASE_URL)
-            ),
-            api_key
-            or (
-                get_env("ZHIPU_API_KEY")
-                if zhipu
-                else get_env("DASHSCOPE_API_KEY")
-            )
-            or "EMPTY",
+            (get_env("ZHIPU_BASE_URL") or DEFAULT_ZHIPU_BASE_URL)
+            if zhipu
+            else (get_env("DASHSCOPE_BASE_URL") or DEFAULT_DASHSCOPE_BASE_URL),
+            api_key,
         )
     if zhipu:
         return get_env("ZHIPU_BASE_URL") or DEFAULT_ZHIPU_BASE_URL, get_env("ZHIPU_API_KEY") or "EMPTY"

@@ -2,21 +2,22 @@
 
 ## vision_chat
 
-Calls a vision-language model via DashScope.
+Calls a vision-language model via DashScope or Zhipu.
 
-### Environment variables
+### Configuration
 
-| Variable | Fallback order |
-|---|---|
-| `base_url` | `DASHSCOPE_BASE_URL` → DashScope URL |
-| `api_key` | `DASHSCOPE_API_KEY` → `EMPTY` |
+Credentials and endpoint overrides are process or user configuration, never tool arguments. Run
+`freeglm-api --setup` for an interactive, no-echo credential prompt, or provide the variables through
+your harness's protected environment configuration.
 
-### DashScope setup
+| Provider | Credential variable | Optional endpoint variable |
+|---|---|---|
+| DashScope | `DASHSCOPE_API_KEY` | `DASHSCOPE_BASE_URL` |
+| Zhipu | `ZHIPU_API_KEY` | `ZHIPU_BASE_URL` |
 
-```
-base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-api_key: your DASHSCOPE_API_KEY
-```
+Do not paste credentials into tool calls, prompts, command arguments, or logs. A custom endpoint is
+used only with credentials supplied by trusted process configuration; the public tool schema cannot
+override either value.
 
 ### Tips
 

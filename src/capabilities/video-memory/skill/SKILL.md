@@ -49,8 +49,13 @@ bash script/build_memory/build_memory.sh /path/to/video.mp4
 
 # Build with custom options
 bash script/build_memory/build_memory.sh /path/to/video.mp4 \
-    --output-dir /path/to/output --model qwen3.7-plus --api-key "$DASHSCOPE_API_KEY"
+    --output-dir /path/to/output --model qwen3.7-plus
 ```
+
+Configure `DASHSCOPE_API_KEY` with `bash install.sh configure` or the environment. Never put a key
+in a prompt, tool argument, or command line; those surfaces may be recorded in transcripts, logs,
+shell history, or process listings. Building memory sends sampled media to DashScope and may upload
+clips to the configured OSS bucket, so confirm the data-egress boundary for private media first.
 
 
 ## Retrieval Workflow

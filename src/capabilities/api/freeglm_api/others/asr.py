@@ -53,7 +53,6 @@ class TranscribeAudioArgs(BaseModel):
     enable_itn: bool = Field(
         default=True, description="Inverse text normalization: format numbers/dates/times. Default: true."
     )
-    api_key: Optional[str] = Field(default=None, description="DashScope API key (defaults to DASHSCOPE_API_KEY).")
 
 
 TOOL: dict[str, Any] = {
@@ -199,10 +198,11 @@ def handle(arguments: dict[str, Any]) -> list[dict[str, Any]]:
     media_path = os.path.realpath(file_path)
 
     model = arguments.get("model") or "qwen3-asr-flash"
-    api_key = arguments.get("api_key") or get_env("DASHSCOPE_API_KEY") or ""
+    api_key = get_env("DASHSCOPE_API_KEY") or ""
     if not api_key and not _local_urls():
         return text_error(
-            "no API key. Set DASHSCOPE_API_KEY or pass api_key, or set ASR_SERVER_URLS for self-hosted fallback."
+            "no API key. Set DASHSCOPE_API_KEY in the environment or FreeGLM config, "
+            "or set ASR_SERVER_URLS for a self-hosted fallback."
         )
 
     output_format = arguments.get("format", "srt")

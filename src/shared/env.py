@@ -9,6 +9,8 @@ capability-private env vars keep their own defaults in the capability that owns 
 from __future__ import annotations
 
 import os
+import stat
+import sys
 from collections.abc import Iterable
 
 
@@ -63,7 +65,16 @@ def _config() -> dict[str, str]:
     global _config_cache
     if _config_cache is None:
         try:
-            with open(config_file(), encoding="utf-8") as f:
+            path = config_file()
+            with open(path, encoding="utf-8") as f:
+                # Inspect the descriptor actually being read, not a path that could be swapped
+                # between stat() and open(). POSIX group/other bits do not apply on Windows.
+                mode = stat.S_IMODE(os.fstat(f.fileno()).st_mode)
+                if os.name != "nt" and mode & 0o077:
+                    sys.stderr.write(
+                        f"[freeglm] warning: {path} is readable by other users (mode {mode:04o}); "
+                        f"run `chmod 600 {path}`.\n"
+                    )
                 _config_cache = _parse_config(f.read())
         except (OSError, UnicodeDecodeError):
             _config_cache = {}

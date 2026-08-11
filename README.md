@@ -2,14 +2,16 @@
 
 **English** · [中文](README.zh.md)
 
-*“眼贴膜” — because it makes your agent see.* 😌
+Composable multimodal capabilities for agent harnesses.
 
-Native multimodal plugins for vision-language models — forked from [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0), with a first-class **Zhipu GLM-4.6V-Flash** vision backend added alongside the original DashScope Qwen one. Make any agent harness multimodal-native, and let it pick the cheapest fast backend automatically.
+FreeGLM is a set of installable Agent Skills and MCP servers for local media and file I/O, cloud media understanding, search, long-video memory, media generation and editing, and 3D/CAD workflows. It is derived from [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0) and adds a Zhipu GLM-4.6V-Flash backend for `vision_chat`, `ocr`, and `grounding`; backend selection follows explicit configuration, not a price or latency comparison.
 
 ## Contents
 
 - [🧩 Capabilities](#-capabilities)
 - [🏗 Architecture](#-architecture)
+- [🗺 Project map](docs/en/project-map.md)
+- [🤖 Agent integration and routing](docs/en/agent-integration.md)
 - [📦 Installation](#-installation)
 - [🔧 Dependencies](#-dependencies)
 - [🔑 Configuration](#-configuration)
@@ -26,9 +28,9 @@ We ship [**cookbooks**](cookbooks/) of these plugins in action — each capabili
 
 | Capability | What it does | Install name | Cookbook |
 |---|---|---|---|
-| **core** | Local I/O plugin: read images and video in dynamic resolution, and visualize any file (e.g. docs, 3D, and more) — plus some image tools (crop, annotate, extract frames) | `freeglm-core` | [link](cookbooks/core/usage.md) |
-| **api** | Cloud APIs for understanding media, by model family. **VL** (vision chat, OCR, grounding) runs on **two backends**: DashScope Qwen (default, `qwen3.7-plus`) or **Zhipu GLM (`glm-4.6v-flash`)** — auto-selected when only `ZHIPU_API_KEY` is set, or per call via `provider="zhipu"`. Plus Omni A/V (timestamped captioning, ASR / multi-speaker diarization, temporal grounding, event counting), ASR and segmentation (SAM3) on DashScope | `freeglm-api` | [link](cookbooks/api/usage.md) |
-| **search** | Web + reverse-image search to confirm facts: web search, page extraction, reverse image search; currently supports Serper | `freeglm-search` | [link](cookbooks/search/usage.md) |
+| **core** | Local I/O: read images/video, inspect media metadata, visualize supported document/data/code/3D/GIS/notebook formats, and crop, annotate, or save frames | `freeglm-core` | [link](cookbooks/core/usage.md) |
+| **api** | External media-understanding services. `vision_chat` / `ocr` / `grounding` support DashScope Qwen or Zhipu GLM; Omni, dedicated ASR, and SAM3 segmentation have their own service requirements | `freeglm-api` | [link](cookbooks/api/usage.md) |
+| **search** | Web search, page extraction, and reverse-image search via Serper. Reverse-searching a local image requires explicit consent because it is uploaded to a third-party public host | `freeglm-search` | [link](cookbooks/search/usage.md) |
 | **video-memory** | Long-video memory: a hierarchical graph memory that powers QA over very long videos | `freeglm-video-memory` | [TBD](cookbooks/video-memory/usage.md) |
 | **video-edit** | Video editing + generation: editing workflows + image / video / audio generation | `freeglm-video-edit` | [TBD](cookbooks/video-edit/usage.md) |
 | **blender** | Blender 3D modeling: drive a **running** Blender via Python (thin client, 22 tools) — modeling / materials / lighting / rendering | `freeglm-blender` | [TBD](cookbooks/blender/usage.md) |
@@ -39,6 +41,8 @@ We ship [**cookbooks**](cookbooks/) of these plugins in action — each capabili
 
 ![FreeGLM Architecture](docs/assets/architecture.svg)
 
+See the [project map](docs/en/project-map.md) for directory ownership, capability boundaries, dependencies, and data-egress behavior. For tool selection, long-video routing, and multi-agent coordination, see [agent integration and routing](docs/en/agent-integration.md).
+
 ## 📦 Installation
 
 A capability = a **skill** (so the model knows the tools exist) + an optional **MCP server** (the tools themselves, launched on demand by `uvx` — needs [uv](https://docs.astral.sh/uv/), no manual pip).
@@ -48,10 +52,10 @@ A capability = a **skill** (so the model knows the tools exist) + an optional **
 One script handles **install · configure · verify · uninstall** across every harness it supports (Claude Code · Codex · Qoder · OpenClaw · Qwen Code · Gemini CLI). It drives each harness's own native install under the hood — nothing reinvented — and writes a single shared config file (`~/.freeglm/config`) that GUI and terminal harnesses both read, so you set things up once:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/v1.0.1/install.sh | bash
 ```
 
-**ZCode** has no CLI on `PATH`, so it's a one-shot manual step instead: add this repo as a plugin marketplace and install each capability from the ZCode UI (`marketplace add https://github.com/yenns7/freeglm.git` → `install freeglm-core@freeglm`). The repo ships zcode-ready manifests (`.zcode-plugin/`); full guide in [docs/en/adapting_zcode.md](docs/en/adapting_zcode.md).
+**ZCode** has no plugin CLI on `PATH`. Open a workspace and use **Settings → Plugins → Create → Add marketplace URL → Install** for each required capability. The repository ships ZCode-ready manifests under `.zcode-plugin/`; see the [ZCode adaptation guide](docs/en/adapting_zcode.md) for the exact UI flow and manifest model.
 
 Or run one action at a time — `bash install.sh install` / `configure` / `verify` / `uninstall` (what `configure` and `verify` do is detailed under [Configuration](#-configuration) and [Dependencies](#-dependencies)).
 
@@ -65,7 +69,7 @@ environment; native Windows has not yet been validated. See the concise
 
 Prefer your harness's own commands — or you're on opencode / pi / QwenPaw, which the installer doesn't cover? Register the skill + MCP yourself.
 
-**Plugin-marketplace harnesses** (Claude Code · Qoder · Codex · OpenClaw · Qwen Code) — add the marketplace, then install a capability (replace `<cap>` with `core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`). Install `core` by default — it's the local-I/O base every other capability builds on — plus whichever others you need:
+**Plugin-marketplace harnesses** (Claude Code · Qoder · Codex · OpenClaw · Qwen Code) — add the marketplace, then install a capability (replace `<cap>` with `core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`). Install `core` when the agent needs local file/media inspection, then add only the independent cloud, search, editing, or application capabilities the workflow actually needs:
 
 ```bash
 # Claude Code
@@ -104,6 +108,8 @@ Export them in your shell, or persist them to `~/.freeglm/config` (read whenever
 ```bash
 bash install.sh configure
 ```
+
+Credentials must stay in the environment or the private `~/.freeglm/config` file. Never paste a key into chat, echo it to logs, commit it, or pass it as a tool argument. Agents may check whether a credential is configured, but must not read or display its value. External capabilities send queries or media to their configured providers; review the [data-egress table](docs/en/project-map.md#network-data-egress-and-credentials) before using private material.
 
 For non-interactive/automation setup and the full environment-variable catalog, see [`docs/en/installation.md`](docs/en/installation.md).
 
@@ -148,39 +154,37 @@ See each capability's 🍳 [cookbook](cookbooks/) for every tool, setup, and a w
 
 ## 🤖 Agent Quick-Start Prompt
 
-FreeGLM is built for agents, and the fastest way to hook it up is to paste this into the agent (Claude Code / Codex / Qoder / any harness you've installed `freeglm-<cap>` on). It teaches the model the two VL backends and — importantly — that media understanding must go **through the MCP tools**, not through the harness's own built-in OCR/vision (so you get the model you configured, e.g. the free GLM-4.6V-Flash, instead of a local macOS OCR):
+Paste the concise policy below into an agent after installing the required capabilities. The full routing and multi-agent policy is in [agent integration and routing](docs/en/agent-integration.md).
 
 ```text
-You have FreeGLM MCP tools available. Rules:
+You have FreeGLM capabilities available. Route each task to the owning capability:
 
-1. MEDIA ALWAYS GOES THROUGH TOOLS. To read, OCR, caption, or ground any image/video,
-   call the `freeglm-*` MCP tools (vision_chat / ocr / grounding). Never fall back to
-   your harness's built-in image/OCR capabilities for these tasks.
-
-2. VL backends (vision_chat / ocr / grounding) — two providers, selected automatically:
-   - Zhipu GLM-4.6V-Flash: the default when only ZHIPU_API_KEY is set (zero DashScope config).
-     Fast, free-tier, no thinking tokens. Model `glm-4.6v-flash`, endpoint open.bigmodel.cn.
-   - DashScope Qwen: the default otherwise (DASHSCOPE_API_KEY). Model `qwen3.7-plus`.
-   - Force a backend per call with provider="zhipu" or provider="dashscope".
-   - Zhipu has NO video modality: videos are sampled into image frames locally — that's fine,
-     keep video_max_frames within reason (frames = seconds for ~1fps).
-
-3. Everything else (Omni A/V, ASR, segmentation, generation, search) needs DASHSCOPE_API_KEY /
-   SERPER_API_KEY respectively — GLM does not cover those.
-
-4. Prefer `dry_run=true` once per workflow to preview the request payload before calling.
+1. Use freeglm-core for local reading, metadata, visualization, cropping, annotation, and frames.
+   Use freeglm-api only when an external model/service is needed for VQA, OCR, grounding, Omni,
+   ASR, or segmentation. GLM is selected automatically only when ZHIPU_API_KEY is configured and
+   DASHSCOPE_API_KEY is not; otherwise VL defaults to DashScope Qwen unless provider is explicit.
+2. Use freeglm-video-memory for whole-video QA over videos of 30 minutes or more. For shorter video
+   QA use core; for editing use freeglm-video-edit, adding video-memory only when long-source semantic
+   navigation is useful. Re-read a narrow source window before asserting frame-level details.
+3. Use freeglm-search only for external fact verification. Ask for explicit consent before a local
+   image is uploaded for reverse search; do not upload private media without that consent.
+4. Never request, print, echo, paste into chat, or pass credentials as tool parameters. Credentials
+   come only from the process environment or the private ~/.freeglm/config file.
+5. A lead agent owns the final answer and shared files. Delegate only independent, bounded work to
+   parallel agents; give each agent non-overlapping outputs, then verify and integrate centrally.
 ```
 
 ## 🧪 Development
 
 Development setup, contribution guidelines, and verification commands are in
 [`CONTRIBUTING.md`](CONTRIBUTING.md). Detailed guides: [local development](docs/en/local_development.md)
-· [adding a capability](docs/en/how_to_add_new_capability.md) · [testing](docs/en/testing.md).
+· [adding a capability](docs/en/how_to_add_new_capability.md) · [testing](docs/en/testing.md)
+· [project map](docs/en/project-map.md) · [agent integration](docs/en/agent-integration.md).
 
 ## 📄 License & Attribution
 
 Apache-2.0 — see [`LICENSE`](LICENSE) and the [NOTICE](NOTICE) file.
 
-This project is a **derived work** of [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) by the Qwen team (Apache-2.0) — a fork that renames the project and adds a **Zhipu GLM-4.6V-Flash** vision backend (provider routing, video-to-frames degradation, `enable_thinking` isolation, config/verify wiring) on top of the upstream VL tools. Upstream changes can be tracked via the fork relationship on GitHub.
+This project is a **derived work** of [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) by the Qwen team (Apache-2.0), imported from upstream commit [`8d6ea5a1f658260743307c52c2024ec87599fa48`](https://github.com/QwenLM/Qwen-MM-Plugins/commit/8d6ea5a1f658260743307c52c2024ec87599fa48). FreeGLM was published with standalone Git history and is **not** a GitHub formal fork, so GitHub's fork relationship must not be used as provenance. See [`UPSTREAM.md`](UPSTREAM.md) for the source baseline and local change scope.
 
 The Blender and FreeCAD capabilities vendor third-party MIT-licensed code; see [`src/capabilities/blender/NOTICE.md`](src/capabilities/blender/NOTICE.md) and [`src/capabilities/freecad/NOTICE.md`](src/capabilities/freecad/NOTICE.md) for attribution.

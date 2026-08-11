@@ -6,24 +6,23 @@ Generate standard Mandarin TTS audio with sentence-level timestamps. Audio and t
 
 **用 DashScope SDK 调用 Qwen-TTS（`dashscope.MultiModalConversation`，模型 `qwen3-tts-flash`），面向用户交付，音质优先。**
 
-这是面向用户的产品路径：直接用官方 DashScope SDK 调 Qwen-TTS，无需自己部署 TTS 节点、无需拼推理 URL、
-无需管理推理服务器。相比本地引擎，Qwen-TTS 的中文自然度、停顿和多音字处理明显更好，适合成品视频。
+这是该技能支持的云端产品路径：直接用官方 DashScope SDK 调 Qwen-TTS，无需自己部署 TTS 节点、无需拼推理 URL、
+无需管理推理服务器。合成质量、可用性和延迟取决于所选模型、账号配额及服务状态，交付前仍需试听检查。
 
 > **为什么用 `qwen3-tts-flash`（HTTP）而不是 `tts_v2.SpeechSynthesizer`（WebSocket）？**
 > `qwen3-tts-flash` 走 HTTP `MultiModalConversation.call`，返回一个音频 URL（WAV，~24h 有效），
 > 稳定、无需 WebSocket 通道。`dashscope.audio.tts_v2.SpeechSynthesizer` 走 wss，部分环境的
 > 出网策略会拦截 WebSocket 导致 `ConnectionError`。因此这里统一用 HTTP 的 `qwen3-tts-flash`。
 
-**速度与分句准确率如何兼得？** 逐句串行请求会慢，因此这里**按句并发合成**：用线程池同时发起所有
-句子的合成请求，再按原顺序把返回的音频拼接起来。整段耗时约等于 *最慢的一句*，而不是所有句子耗时
-之和（实测 3 句并发约 1s）。时间戳直接由**每句返回音频的真实时长**测得（不是按字数估算），因此保持
-100% 精确的分句时间轴。
+**如何兼顾吞吐量与分句时间轴？** 逐句串行请求会慢，因此这里**按句并发合成**：用有界线程池发起
+合成请求，再按原顺序把返回的音频拼接起来。实际耗时取决于服务延迟、限流和重试。时间戳由**每句返回
+音频的实测时长**计算，而不是按字数估算。
 
 - **Official SDK, no self-hosting.** 用 `MultiModalConversation.call(model="qwen3-tts-flash", ...)`，不请求任何自建 `http://.../tts`。
-- **Parallel per-sentence.** 线程池并发（默认 8 worker），墙钟时间 ≈ 最慢一句。
-- **Accurate timestamps.** 每句时长来自返回音频实测，分句时间轴精确。
+- **Parallel per-sentence.** 使用有界线程池并发（默认 8 worker），并在限流时降低并发度。
+- **Measured timestamps.** 每句边界来自返回音频的实测时长。
 
-Each sentence's exact duration is measured from its returned audio clip, producing both `narration.wav` and `transcript.json` in one pass with 100% accurate timestamps.
+Each sentence duration is measured from its returned audio clip, producing both `narration.wav` and `transcript.json` in one pass with measured sentence boundaries.
 
 ## 1. Environment Setup
 
@@ -35,15 +34,13 @@ pip install dashscope requests soundfile numpy
 
 Audio decoding/assembly uses **`soundfile`** (Qwen-TTS returns WAV, which soundfile reads natively — no `pydub`/`audioop`, so this works on Python 3.13). ffmpeg is still needed for the loudness-normalization step below.
 
-**DashScope API key.** The synthesis script (`scripts/generate_voice.py`) reads `DASHSCOPE_API_KEY` itself via `env_config.get_env` — precedence **environment → `~/.freeglm/config` → default**. So set it **either** way:
+**DashScope credential.** The synthesis script (`scripts/generate_voice.py`) resolves the credential from the process environment first and then the private `~/.freeglm/config` file. Configure it **outside the agent conversation** using one of these paths:
 
-```bash
-export DASHSCOPE_API_KEY="sk-xxx"            # shell-launched setups
-# ── or, for GUI-launched harnesses that don't inherit shell exports: ──
-echo 'DASHSCOPE_API_KEY=sk-xxx' >> ~/.freeglm/config
-```
+1. From a source checkout, run `bash install.sh configure`. The installer accepts the value through hidden input and writes the private config with mode `0600`.
+2. In a managed runtime or CI system, let its secret manager inject the value into the process environment.
+3. If the installer is unavailable, use a trusted local credential editor that accepts hidden input and writes `~/.freeglm/config` with mode `0600`; do not display the file contents.
 
-> **Do NOT `cat`/`echo` the key or paste it into the script** — the script reads it at runtime, so the plaintext key never has to enter the conversation. If synthesis fails with a missing-key error, add the key to the config file above; don't inline it.
+The agent must never request, read, print, log, or repeat the secret, and must never place it in chat, tool arguments, command history, generated scripts, or source files. A presence check may report only whether configuration exists.
 
 **No `sherpa-onnx`, `openai-whisper`, `torch`, `pydub`, or `opencc` dependency.**
 
@@ -83,7 +80,7 @@ It synthesizes every sentence concurrently via the DashScope SDK, downloads each
 
 > **Rate limits:** if failures come in bursts, lower `--workers`. A per-sentence retry (3 attempts) handles transient errors.
 >
-> **Missing key:** if the script exits with `DASHSCOPE_API_KEY not found`, add it to `~/.freeglm/config` (`DASHSCOPE_API_KEY=sk-...`) or export it.
+> **Missing credential:** run `bash install.sh configure` outside the agent conversation, or have a trusted secret manager inject it into the process environment. Do not paste the value into chat or a tool call.
 
 ## 4b. Normalize Audio Volume
 

@@ -1,11 +1,15 @@
 ---
 name: freeglm-search
-description: Web and reverse-image search MCP tools (Serper) for confirming facts — web_search (find facts), web_extractor (read a page in depth), image_search (reverse-search a frame to identify an entity). Use to verify anything you cannot confirm from the media alone.
+description: Web and reverse-image search MCP tools (Serper) for confirming facts — web_search (find facts), web_extractor (read a page in depth), image_search (reverse-search a frame to identify an entity). Reverse-searching a local image requires explicit user consent because it is uploaded to a third-party public host; prefer an already-public URL. Use to verify anything you cannot confirm from the media alone.
 ---
 
 # FreeGLM Search
 
 You have `freeglm-search` MCP tools available. They call the Serper API to look things up on the web. Needs `SERPER_API_KEY`.
+
+The key comes only from the user's environment or `~/.freeglm/config`; never ask for it in chat or
+put it in a tool argument. A local `image_search` upload leaves the machine and becomes publicly
+accessible on a third-party host, so obtain explicit consent and prefer an already-public URL.
 
 Check the `freeglm-search` tools in your tool list for full schemas and parameters.
 

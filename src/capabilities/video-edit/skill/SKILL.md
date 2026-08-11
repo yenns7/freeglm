@@ -87,14 +87,14 @@ It reports OK/MISSING/WARN per item with install hints. Summary:
 | headless Chrome / Chromium (designed deliverables) | HyperFrames check/render | `npx hyperframes browser ensure`, or set `PUPPETEER_EXECUTABLE_PATH` to a system Chrome/Chromium |
 | Linux Chrome libs + CJK font (minimal Linux) | Chrome launch + Chinese text rendering | `apt install libnss3 libatk-bridge2.0-0 libgbm1 libasound2 libxkbcommon0 libgtk-3-0 fonts-noto-cjk` |
 | project-local GSAP (designed deliverables) | seek-safe motion in render | `npm install gsap && mkdir -p assets && cp node_modules/gsap/dist/gsap.min.js assets/gsap.min.js` |
-| MCP perception + generation tools | seeing media / generating assets | perception (`read_video`/`read_image`/`vision_chat`/...) ships with the **`freeglm-core`** plugin — install it alongside this one; generation ships with this plugin's own server. Verify in the live agent tool list — a schema file on disk is not availability. Perception missing ⇒ degraded mode in `mcps/core-perception.md` § Failure Handling |
+| MCP perception + generation tools | seeing media / generating assets | local reading (`read_video`/`read_image`/`visualize`/`media_info`) comes from **`freeglm-core`**; cloud understanding (`vision_chat`/`transcribe_audio`/`grounding`/`segmentation`) comes from **`freeglm-api`**; generation ships with this plugin's own server. Verify in the live agent tool list — a schema file on disk is not availability. Perception missing ⇒ degraded mode in `mcps/core-perception.md` § Failure Handling |
 | `DASHSCOPE_API_KEY` (optional) | DashScope-backed MCP tools | set in the MCP server's environment, not passed as a parameter |
 
 Minimal bootstrap for designed renders:
 
 ```bash
 bash <skill-root>/scripts/check_env.sh
-QMP_CHECK_HYPERFRAMES_DOCTOR=1 bash <skill-root>/scripts/check_env.sh  # optional; may download
+FREEGLM_CHECK_HYPERFRAMES_DOCTOR=1 bash <skill-root>/scripts/check_env.sh  # optional; may download
 ```
 
 If Chrome is missing, either let HyperFrames install it or point to an existing

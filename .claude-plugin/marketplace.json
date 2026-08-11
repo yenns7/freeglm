@@ -5,19 +5,19 @@
     "url": "https://github.com/yenns7/freeglm"
   },
   "metadata": {
-    "description": "Qwen multimodal understanding plugins — Agent Skills + MCP servers",
-    "version": "1.0.0"
+    "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
+    "version": "1.0.1"
   },
   "plugins": [
     {
       "name": "freeglm-core",
       "source": "./src/capabilities/core",
-      "description": "Read and visualize any file (images, video, docs, 3D, and more), plus image tools — crop, annotate, extract frames — as MCP tools."
+      "description": "Local-only tools to read and visualize files, crop and annotate images, and extract video frames. Cloud OCR, grounding, segmentation, ASR, and vision chat are provided by freeglm-api."
     },
     {
       "name": "freeglm-api",
       "source": "./src/capabilities/api",
-      "description": "Cloud APIs for understanding media, by model family: VL (vision chat, OCR, grounding), Omni A/V (timestamped captioning, ASR / multi-speaker diarization, temporal grounding, event counting), plus ASR and segmentation (SAM3) — as MCP tools. VL runs on DashScope Qwen (default) or Zhipu GLM-4.6V-Flash (auto when only ZHIPU_API_KEY is set); Omni/ASR/segmentation on DashScope."
+      "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope."
     },
     {
       "name": "freeglm-search",

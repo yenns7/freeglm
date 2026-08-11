@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,6 @@ CONTENT_LIMIT = 8000  # chars of scraped page kept per URL
 class WebExtractorArgs(BaseModel):
     urls: list[str] = Field(description="URLs to crawl and extract content from.", min_length=1)
     goal: str = Field(description="What information to extract or focus on.")
-    api_key: Optional[str] = Field(default=None, description="Serper API key (defaults to SERPER_API_KEY).")
 
 
 TOOL: dict[str, Any] = {
@@ -48,7 +47,7 @@ def handle(arguments: dict[str, Any]) -> list[dict[str, Any]]:
 
     api_key = resolve_serper_key(arguments)
     if not api_key:
-        return text_error("no API key. Set SERPER_API_KEY or pass api_key.")
+        return text_error("no API key. Set SERPER_API_KEY in the environment or FreeGLM config.")
 
     results = []
     for url in urls:

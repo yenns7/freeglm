@@ -19,11 +19,15 @@ DEFAULT_TIMEOUT = 60
 _BACKOFF_CAP_SECONDS = 10
 
 
-def resolve_serper_key(arguments: dict[str, Any]) -> str:
-    """API key for a Serper call: explicit ``api_key`` arg → ``SERPER_API_KEY`` env → ""."""
+def resolve_serper_key(_arguments: dict[str, Any]) -> str:
+    """Resolve the Serper key from user-controlled environment/config only.
+
+    Credentials deliberately never travel through MCP tool arguments, where they could be copied
+    into an agent transcript or tool log.
+    """
     from shared.env import get_env
 
-    return arguments.get("api_key") or get_env("SERPER_API_KEY") or ""
+    return get_env("SERPER_API_KEY") or ""
 
 
 def post_serper(

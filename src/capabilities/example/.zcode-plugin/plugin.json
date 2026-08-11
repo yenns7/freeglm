@@ -1,6 +1,6 @@
 {
   "name": "freeglm-example",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "FreeGLM example — a minimal template capability (skill + MCP server) demonstrating the three tool return shapes (text / image / frames); copy it to add your own.",
   "author": {
     "name": "yenns7",
@@ -12,7 +12,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "freeglm[example] @ git+https://github.com/yenns7/freeglm.git@main",
+        "freeglm[example] @ git+https://github.com/yenns7/freeglm.git@v1.0.1",
         "freeglm-example"
       ]
     }

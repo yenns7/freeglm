@@ -51,7 +51,7 @@ claude mcp add freeglm-core -- python3 "$(pwd)/src/capabilities/core/freeglm_cor
 要验证 plugin.json / marketplace.json / 安装注册本身对不对,但用本地未 push 的代码:把该能力的 plugin 清单临时指到本地 checkout,装完测,再还原。
 
 ```bash
-scripts/dev-plugin.sh core          # 把 core 的 --from 从 git@main 改成 file://<repo>
+scripts/dev-plugin.sh core          # 把 core 的 --from 从发布 tag 改成 file://<repo>
 claude plugin marketplace add "$(pwd)"      # 市场指向本地目录 → 读工作区 manifest
 claude plugin install freeglm-core@freeglm
 # ... 测试(工具名带前缀:mcp__plugin_freeglm-core_freeglm-core__<tool>)...

@@ -120,10 +120,10 @@ else
   warn "GSAP is project-local — in a HyperFrames project run npm install gsap and vendor assets/gsap.min.js"
 fi
 
-if [ "${QMP_CHECK_HYPERFRAMES_DOCTOR:-0}" = "1" ]; then
+if [ "${FREEGLM_CHECK_HYPERFRAMES_DOCTOR:-${QMP_CHECK_HYPERFRAMES_DOCTOR:-0}}" = "1" ]; then
   if npx -y hyperframes doctor; then ok "hyperframes doctor"; else warn "hyperframes doctor failed — see output above"; fi
 else
-  echo "  NOTE    set QMP_CHECK_HYPERFRAMES_DOCTOR=1 to run 'npx hyperframes doctor' (may download)"
+  echo "  NOTE    set FREEGLM_CHECK_HYPERFRAMES_DOCTOR=1 to run 'npx hyperframes doctor' (may download)"
 fi
 
 echo
@@ -133,8 +133,8 @@ echo "  NOTE    generation: qwen_image/qwen_tts/wan_t2v/happyhorse/wan_s2v"
 echo "  NOTE    a local schema file is NOT proof of availability — check the live tool list"
 
 echo
-[ -n "${DASHSCOPE_API_KEY:-}" ] && ok "DASHSCOPE_API_KEY set (len ${#DASHSCOPE_API_KEY})" \
-  || warn "DASHSCOPE_API_KEY not set in this shell — this checks the shell only; DashScope-backed MCP tools also read it from ~/.freeglm/config (DASHSCOPE_API_KEY=sk-...)"
+[ -n "${DASHSCOPE_API_KEY:-}" ] && ok "DASHSCOPE_API_KEY set" \
+  || warn "DASHSCOPE_API_KEY not set in this shell — this checks the shell only; DashScope-backed MCP tools also read the protected ~/.freeglm/config written by 'bash install.sh configure'"
 
 echo
 if [ "$MISS" -eq 0 ]; then echo "RESULT: all hard requirements satisfied ($MISS missing)"; else echo "RESULT: $MISS hard requirement(s) missing — fix before editing work"; fi

@@ -156,13 +156,12 @@ if __name__ == "__main__":
     parser.add_argument("video_path", help="Path to video file")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--model", default="qwen3.7-plus")
-    parser.add_argument("--api-key", default="")
     parser.add_argument("--num-workers", type=int, default=10)
     parser.add_argument("--poll-interval", type=float, default=2.0)
     parser.add_argument("--p1-pid", type=int, default=None)
     args = parser.parse_args()
 
-    api_key = args.api_key or get_env("DASHSCOPE_API_KEY") or ""
+    api_key = get_env("DASHSCOPE_API_KEY") or ""
 
     run_pipeline_worker(
         video_path=args.video_path,

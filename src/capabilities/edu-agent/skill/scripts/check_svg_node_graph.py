@@ -158,8 +158,10 @@ def rects_of(svg, css):
     for m in re.finditer(r"<rect\b[^>]*/?>", svg):
         t = m.group(0)
         try:
-            x = float(attr(t, "x")); y = float(attr(t, "y"))
-            w = float(attr(t, "width")); h = float(attr(t, "height"))
+            x = float(attr(t, "x"))
+            y = float(attr(t, "y"))
+            w = float(attr(t, "width"))
+            h = float(attr(t, "height"))
         except (TypeError, ValueError):
             continue
         has_stroke = attr(t, "stroke") or (attr(t, "class") or "")
