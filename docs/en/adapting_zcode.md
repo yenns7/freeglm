@@ -20,7 +20,7 @@ thin registration layer that tells the harness where those live:
 | OpenClaw / Qwen Code / Gemini | native verbs or marketplace | see `docs/en/installation.md` |
 
 The MCP servers themselves are launched from the same immutable release everywhere — `uvx --from
-"freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>` — so adapting to
+"freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>` — so adapting to
 a new harness is never a server-code change, only a registration manifest.
 
 ## How the ZCode adaptation is wired
@@ -35,7 +35,7 @@ A Claude-schema marketplace. ZCode reads this to list FreeGLM's capabilities:
   "owner": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
   "metadata": {
     "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     { "name": "freeglm-core", "source": "./src/capabilities/core", "description": "…" },
@@ -56,14 +56,14 @@ Each capability folder carries one. For a server capability (`api` example):
 ```json
 {
   "name": "freeglm-api",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope.",
   "author": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
   "skills": "./skill",
   "mcpServers": {
     "freeglm-api": {
       "command": "uvx",
-      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-api"]
+      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-api"]
     }
   }
 }
@@ -75,7 +75,7 @@ For a skill-only capability (`edu-agent`), omit `mcpServers` — only `skills` i
 
 - **`skills`** — copied/registered so the model knows the toolset exists (the `SKILL.md` inside).
 - **`mcpServers`** — a stdio MCP server, launched on demand by `uvx`. First launch resolves
-  `freeglm[<cap>]` from the `v1.0.1` git tag and installs its Python extras into an isolated cache — no
+  `freeglm[<cap>]` from the `v1.0.2` git tag and installs its Python extras into an isolated cache — no
   manual pip. `blender` / `freecad` additionally pass `FREEGLM_AUTOLAUNCH=1` in `env`.
 
 ### 4. Install in ZCode

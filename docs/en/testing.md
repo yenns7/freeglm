@@ -2,7 +2,7 @@
 
 **English** · [中文](../zh/testing.md)
 
-`python3 -m pytest tests/` runs everything uniformly.
+`uv run --with pytest --extra all pytest -m "not reachability" tests/` runs the complete offline suite in an isolated environment.
 
 New plugins need no explicit installation: `conftest.py` adds `src/` and each `src/capabilities/<cap>/` to `sys.path` and auto-discovers all server packages, so `import freeglm_<yourname>` just works, and the fixtures (`sample_image` / `sample_video`) can be reused too.
 
@@ -11,6 +11,9 @@ New plugins need no explicit installation: `conftest.py` adds `src/` and each `s
 - `test_tools.py` — tests the core server: calls `handle()` in-process (tool discovery / schema / read_image / read_video / budget / timestamp regression) plus a full initialize → tools/list → tools/call over the MCP SDK's stdio client.
 - `test_mcp_framework.py` — the shared framework: `tool_schema` / `build_registry` schema transforms and tool discovery.
 - `test_api_clients.py` — the shared network layer (`shared.api_openai` / `api_dashscope` / `retry`).
+- `test_api_tools.py` — cloud-tool schemas and handlers with provider calls mocked; includes GLM / DashScope routing and media-format regressions.
+- `test_api_reachability.py` — opt-in, credential-gated live checks for DashScope, Zhipu GLM, and Serper; skipped by the ordinary offline suite.
+- `test_security_contract.py` — credential, redaction, private-config, public-schema, and installer/runtime consistency regressions.
 - `test_video_memory.py` — tests the video-memory server: returns isError when no graph_memory.json has been built.
 - `test_build_merge.py` — the video-memory build: `build_graph.merge_chunks`.
 - `test_video_edit.py` — video-edit tests: schema/handler only.
@@ -45,10 +48,26 @@ def test_handler():
 ## Running
 
 ```bash
-python3 -m pytest tests/                 # full suite (missing deps auto-skip)
-python3 -m pytest tests/test_<yourname>.py -v
-ruff format . && ruff check . --fix      # before committing
+uv run --with pytest --extra all pytest -m "not reachability" tests/  # complete offline suite
+uv run --with pytest --extra all pytest tests/test_<yourname>.py -v
+uvx ruff format --check path/to/changed.py && uvx ruff check .        # before committing
 ```
+
+## Live provider reachability
+
+Live tests are intentionally separate from the offline suite. They send generated, non-sensitive
+fixtures to real services and can consume quota or incur cost. Configure keys through
+`bash install.sh configure`; never place a key value in the command. The tests require both the
+relevant credential and the explicit `FREEGLM_RUN_REACHABILITY=1` opt-in:
+
+```bash
+FREEGLM_RUN_REACHABILITY=1 uv run --with pytest --extra api pytest -m reachability -k zhipu tests/test_api_reachability.py
+FREEGLM_RUN_REACHABILITY=1 uv run --with pytest --extra api pytest -m reachability -k dashscope tests/test_api_reachability.py
+FREEGLM_RUN_REACHABILITY=1 uv run --with pytest --extra search pytest -m reachability -k serper tests/test_api_reachability.py
+```
+
+A skipped test is not evidence that the provider passed. See [provider and API setup](provider-setup.md)
+for account setup, interpretation, and troubleshooting.
 
 ## Quick checklist
 
@@ -56,4 +75,4 @@ ruff format . && ruff check . --fix      # before committing
 - [ ] has rendering / output → assets in `tests/assets/` (small) or `real/` (large) + parametrize
 - [ ] server has protocol behavior → `mcp_call` end-to-end, see `test_video_memory.py`
 - [ ] intentionally duplicated files → add a guard in `test_repo_sync.py`
-- [ ] `pytest tests/` all green, `ruff check .` clean
+- [ ] complete offline suite green; relevant explicitly authorized reachability tests green; Ruff clean

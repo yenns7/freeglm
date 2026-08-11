@@ -21,7 +21,7 @@ wsl --install -d Ubuntu
 
 自动化安装器公开支持 `FREEGLM_REPO`、`FREEGLM_REF`、`FREEGLM_NO_TUI` 和
 `FREEGLM_SPIN_TIMEOUT`；旧的 `QMP_*` 名称继续作为兼容别名。远端默认固定到不可变的
-`v1.0.1` tag。
+`v1.0.2` tag。
 
 每个能力都是 `freeglm-<cap>`、uvx extras 为 `[<cap>]`；下面每个块里把 `<cap>` 换成具体能力名（`core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`）。
 
@@ -37,7 +37,7 @@ Claude Code 也可以走手动安装 —— 和插件市场的区别只在工具
 ln -s "$(pwd)/src/capabilities/<cap>/skill" ~/.claude/skills/freeglm-<cap>
 # 2) MCP（本地代码把 --from 换成 "$(pwd)[<cap>]"）
 claude mcp add freeglm-<cap> -- \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>
 ```
 
 换能力时，把 skill 路径、`[<cap>]` profile、入口名 `freeglm-<cap>` 一起换成对应能力的。
@@ -52,7 +52,7 @@ claude mcp add freeglm-<cap> -- \
   "mcp": {
     "freeglm-<cap>": {
       "type": "local",
-      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"],
+      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-<cap>"],
       "enabled": true
     }
   }
@@ -80,7 +80,7 @@ qwen extensions install https://github.com/yenns7/freeglm.git:freeglm-<cap> --co
 
 ```bash
 qwen mcp add freeglm-<cap> --scope user --trust --timeout 600000 \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>
 ```
 
 无头运行：`qwen -p "…" --yolo -o text`。卸载：`qwen extensions uninstall freeglm-<cap>`。
@@ -91,7 +91,7 @@ qwen mcp add freeglm-<cap> --scope user --trust --timeout 600000 \
 
 ```bash
 gemini mcp add -s user freeglm-<cap> \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>
 gemini skills install https://github.com/yenns7/freeglm.git --path src/capabilities/<cap>/skill --consent
 ```
 
@@ -115,7 +115,7 @@ pi install npm:pi-mcp-adapter                                               # �
   "settings": { "toolPrefix": "none" },
   "mcpServers": { "freeglm-<cap>": {
     "command": "uvx",
-    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
+    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-<cap>"]
   } }
 }
 ```
@@ -143,7 +143,7 @@ qwenpaw skills config    # 交互勾选启用
         "enabled": true,
         "transport": "stdio",
         "command": "uvx",
-        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
+        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-<cap>"]
       }
     }
   }
@@ -173,7 +173,7 @@ workspace 中按真实 UI 操作：进入 **Settings → Plugins**，点击 **Cr
 
 ### API Key（仅 API 工具需要）
 
-VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **或** `ZHIPU_API_KEY` —— 只设智谱 key 时 VL 工具会自动路由到 GLM-4.6V-Flash 后端（零 DashScope 配置）。`transcribe_audio` 与生成类工具仍需 `DASHSCOPE_API_KEY`。key 从 shell 环境继承（或写进 `~/.freeglm/config`）。联网工具（`web_search` / `web_extractor` / `image_search`）走 Serper API，需要 `SERPER_API_KEY`。原生读图 / 视频 / 文档不需要 key。
+VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **或** `ZHIPU_API_KEY` —— 只设智谱 key 时 VL 工具会自动路由到 GLM-4.6V-Flash 后端（零 DashScope 配置）。`transcribe_audio` 与生成类工具仍需 `DASHSCOPE_API_KEY`。key 从 shell 环境继承（或写进 `~/.freeglm/config`）。联网工具（`web_search` / `web_extractor` / `image_search`）走 Serper API，需要 `SERPER_API_KEY`。原生读图 / 视频 / 文档不需要 key。账号创建、隐藏输入配置、在线验收、轮换和排障见 [Provider 与 API 配置指南](provider-setup.md)。
 
 ### 系统工具（需用系统包管理器手动装）
 
@@ -187,7 +187,7 @@ VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **�
 
 如何查看缺少的系统工具：
 
-- 用 uvx 查看：`uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap> --check-system`。
+- 用 uvx 查看：`uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap> --check-system`。
 - server 启动时，若某个已装 extra 缺对应系统工具，会在 stderr 打印一行告警。
 - 实际工具调用时，返回「请安装 X」的文字提示，其它工具照常用。
 

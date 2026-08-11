@@ -28,6 +28,7 @@
 | `.claude-plugin/`、`.zcode-plugin/`、各能力 plugin 目录 | Marketplace 与 harness 注册 | 描述应从能力归属生成或受校验；manifest 不重新定义工具归属 |
 | `cookbooks/` | 实战示例和已观察工作流 | 示例必须披露网络、凭据和数据出境前提 |
 | `docs/en/`、`docs/zh/` | 安装、开发、路由和架构说明 | 中英文策略必须保持语义一致 |
+| `docs/*/provider-setup.md` | 用户侧 Provider 接入、在线验收、凭据轮换和扩展检查清单 | 跟随 Provider 官方契约更新，绝不放凭据值示例 |
 | `tests/` | 离线契约与凭据门控的连通性测试 | live test 被跳过不能表述为外部服务已通过 |
 | `NOTICE`、`UPSTREAM.md`、能力级 `NOTICE.md` | 上游和 vendor 代码溯源 | 记录精确来源 revision，并保留必要声明 |
 
@@ -39,6 +40,7 @@
 |---|---|---|
 | `README.md` | 英文首屏、受支持能力概览、安装入口和安全首轮路由 | 保持精简；详细归属和排除项链接到本目录 |
 | `README.zh.md` | `README.md` 的中文对应文档 | 策略和能力声明与英文保持语义一致 |
+| `docs/*/provider-setup.md` | 中英双语 GLM、DashScope、Serper 配置与验收入口 | 从首屏、安装、路由和测试文档链接，并保持凭据边界 |
 | `install.sh` | 源码 checkout 的交互式安装、profile 选择、harness 注册、系统检查和隐藏凭据配置 | 操作入口；不得打印 secret，也不得暗示所有可选依赖都会安装 |
 | `.env.example` | 已识别配置项名称与非敏感默认值清单 | 只用于说明；不得保存凭据值，也不得指示用户把值暴露到聊天或命令输出 |
 | `pyproject.toml` | Python 分发元数据、依赖 profile、命令入口、包布局和测试配置 | Packaging 事实来源；能力适用性仍以本目录及各能力 tool/skill 契约为准 |

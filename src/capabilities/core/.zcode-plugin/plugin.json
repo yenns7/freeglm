@@ -1,6 +1,6 @@
 {
   "name": "freeglm-core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "FreeGLM core — local-only tools to read and visualize images, video, PDF, Office, code, SVG, 3D, GIS, and notebooks, plus crop, bounding-box annotation, and frame extraction. Cloud OCR, grounding, segmentation, ASR, and vision chat live in freeglm-api.",
   "author": {
     "name": "yenns7",
@@ -12,7 +12,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "freeglm[core] @ git+https://github.com/yenns7/freeglm.git@v1.0.1",
+        "freeglm[core] @ git+https://github.com/yenns7/freeglm.git@v1.0.2",
         "freeglm-core"
       ]
     }

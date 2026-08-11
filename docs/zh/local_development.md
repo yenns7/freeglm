@@ -14,7 +14,7 @@ scripts/dev-install.sh core     # vision + 全套 visualize
 scripts/dev-install.sh all      # 全部(含 geopandas/trimesh/playwright 等重依赖)
 
 python -c "import freeglm_core as p; print(len(p.SPECS), 'tools')"
-python -m pytest tests/
+uv run --with pytest --extra all pytest -m "not reachability" tests/
 ```
 
 装在当前激活的 venv 里(有 `uv` + venv 时用 uv,否则用 pip)。改依赖了才需要重跑。

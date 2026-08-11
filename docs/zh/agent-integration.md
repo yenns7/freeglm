@@ -36,6 +36,9 @@
 - 只有实时工具 schema 明确提供 request preview/dry-run，且预览有具体诊断价值时才使用；
   它不是每个工作流的固定步骤。
 
+精确配置步骤、在线验收命令、视频行为与 Provider 故障诊断见
+[Provider 与 API 配置指南](provider-setup.md)。
+
 ## 多 Agent 协作
 
 主 Agent 始终对任务、最终答案和共享状态负责。

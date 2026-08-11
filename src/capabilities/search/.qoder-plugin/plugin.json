@@ -1,7 +1,7 @@
 {
   "name": "freeglm-search",
   "displayName": "FreeGLM Search",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Web + reverse-image search to confirm facts: web search, page extraction, reverse image search as MCP tools; currently supports Serper.",
   "skills": "./skill",
   "mcp": ".mcp.json"

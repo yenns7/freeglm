@@ -41,6 +41,9 @@ planning calls, and report a missing capability instead of pretending that it ra
 - Use request-preview or dry-run behavior only where the live tool schema advertises it and only when
   previewing has a concrete diagnostic purpose. It is not a universal workflow step.
 
+For exact setup steps, live acceptance commands, video behavior, and provider-specific failure
+diagnosis, see [provider and API setup](provider-setup.md).
+
 ## Multi-agent coordination
 
 A lead agent remains accountable for the task, final answer, and shared state.

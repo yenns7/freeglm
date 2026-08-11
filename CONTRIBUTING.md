@@ -36,16 +36,17 @@ the repository layout and registration steps.
 Run the relevant targeted tests while developing, then run:
 
 ```bash
-python3 -m pytest tests/
+uv run --with pytest --extra all pytest -m "not reachability" tests/
 python3 scripts/check_manifests.py
 python3 scripts/check_security_contract.py
 bash -n install.sh
-ruff format .
-ruff check .
+uvx ruff format --check path/to/changed.py
+uvx ruff check .
 ```
 
 If a test needs credentials, a GUI application, GPU hardware, or another
-environment not available to you, state what was not run in the PR.
+environment not available to you, state what was not run in the PR. Live provider tests are opt-in;
+see [provider and API setup](docs/en/provider-setup.md) before authorizing real service calls.
 
 ## Pull requests
 

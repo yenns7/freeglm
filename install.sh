@@ -17,7 +17,7 @@
 set -uo pipefail
 
 REPO_URL="${FREEGLM_REPO:-${QMP_REPO:-https://github.com/yenns7/freeglm.git}}"
-REPO_REF="${FREEGLM_REF:-${QMP_REF:-v1.0.1}}"
+REPO_REF="${FREEGLM_REF:-${QMP_REF:-v1.0.2}}"
 FREEGLM_NO_TUI="${FREEGLM_NO_TUI:-${QMP_NO_TUI:-}}"
 FREEGLM_SPIN_TIMEOUT="${FREEGLM_SPIN_TIMEOUT:-${QMP_SPIN_TIMEOUT:-15}}"
 MARKETPLACE="freeglm"

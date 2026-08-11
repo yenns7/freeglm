@@ -27,7 +27,10 @@ class VisionChatArgs(BaseModel):
     images: Optional[list[str]] = Field(default=None, description="Image URLs, data URLs, or local file paths")
     videos: Optional[list[str]] = Field(
         default=None,
-        description="Video URLs or local file paths. Local files are auto-extracted into frames.",
+        description=(
+            "Video URLs or local file paths. Remote URLs use the provider's native video input; "
+            "local files use OSS when configured, otherwise they are sampled into frames."
+        ),
     )
     max_tokens: int = Field(default=2048, description="Maximum tokens in response (default: 2048)")
     temperature: Optional[float] = Field(default=None, description="Sampling temperature")
@@ -51,11 +54,12 @@ TOOL: dict[str, Any] = {
         "Local videos are sampled into inline frames, so per request keep ≤ 250 items total "
         "(frames + images) and fps = frames / duration within [0.1, 10] — set video_max_frames to the "
         "video's length; for videos over ~40 min use read_video instead. "
-        "Remote video URLs are handled server-side on DashScope; on Zhipu (no video modality) remote "
-        "and local videos are both sampled into image frames locally. "
+        "Remote video URLs use the selected provider's native video input. "
         "When OSS is configured (OSS_AK/OSS_SK/OSS_ENDPOINT/"
-        "OSS_BUCKET) a local video is uploaded and sampled server-side instead, lifting the inline frame "
+        "OSS_BUCKET) a local video is uploaded and sampled server-side too, lifting the inline frame "
         "cap (still bounded by the model's server-side video-duration limit, e.g. 2 h for qwen3.7-plus). "
+        "Without OSS, local video remains portable: Zhipu receives sampled image parts and DashScope "
+        "receives an inline sampled video part. "
         "Use dry_run=true to preview the request payload without calling."
     ),
     "args": VisionChatArgs,
@@ -90,7 +94,8 @@ def handle(arguments: dict[str, Any]) -> list[dict[str, Any]]:
             content.append(encode_image_source(img))
         for vid in videos:
             # dry_run must not hit the network, so suppress the OSS upload and preview the local path.
-            # On the Zhipu GLM backend each video expands into per-frame image parts.
+            # A local Zhipu video without OSS expands into image parts; remote/OSS videos keep the
+            # provider's native video_url content type.
             content.extend(
                 encode_video_as_images(vid, video_max_frames, allow_upload=not dry_run, model=model, provider=provider)
             )
