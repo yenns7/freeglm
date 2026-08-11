@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "freeglm"
 dynamic = ["version"]
-description = "FreeGLM: composable Agent Skills and MCP tools for supported local-file I/O, vision-language APIs, long-video graph memory, media generation and editing, and Blender/FreeCAD workflows."
+description = "Built on Qwen-MM-Plugins: composable multimodal Agent Skills and MCP tools, extended with Zhipu's currently free GLM-4.6V-Flash vision backend."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"

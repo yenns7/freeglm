@@ -26,7 +26,7 @@ At first principles, onboarding has four parts: install the tool, make the crede
 
 ## Zhipu GLM: shortest setup path
 
-Zhipu's official flow is to sign in, create an API key, and use the general OpenAI-compatible endpoint `https://open.bigmodel.cn/api/paas/v4/`. FreeGLM defaults to `glm-4.6v-flash`. Follow the official [Zhipu HTTP API guide](https://docs.bigmodel.cn/cn/guide/develop/http/introduction) and [GLM-4.6V-Flash model guide](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash).
+Zhipu currently documents GLM-4.6V-Flash as the free version of GLM-4.6V. Its official onboarding flow is to sign in, create an API key, and use the general OpenAI-compatible endpoint `https://open.bigmodel.cn/api/paas/v4/`; FreeGLM uses `glm-4.6v-flash` by default. Free availability is governed by Zhipu's current policy. Follow the official [Zhipu HTTP API guide](https://docs.bigmodel.cn/cn/guide/develop/http/introduction) and [GLM-4.6V-Flash model guide](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash).
 
 1. Install `freeglm-api`, or run the guided installer from a checkout.
 2. Run `bash install.sh configure`.

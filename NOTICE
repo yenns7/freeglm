@@ -8,10 +8,11 @@ This product is a derived work of:
   https://github.com/QwenLM/Qwen-MM-Plugins
   Licensed under the Apache License, Version 2.0.
 
-FreeGLM is a fork of Qwen-MM-Plugins that renames the project and adds a
-Zhipu GLM-4.6V-Flash vision backend (provider routing for vision_chat / ocr /
-grounding, video-to-frames degradation on the Zhipu backend, enable_thinking
-isolation, and ZHIPU_* configuration/verification wiring).
+FreeGLM is a derived adaptation built directly on Qwen-MM-Plugins. It preserves
+and extends the upstream multimodal Agent Skills and MCP servers, and adds
+Zhipu GLM-4.6V-Flash as an optional vision backend for vision_chat / ocr /
+grounding, including provider routing, native remote-video
+input, local frame fallback, and ZHIPU_* configuration/verification wiring.
 
 Both the original project and this derived work are distributed under the
 Apache License, Version 2.0. A copy of the license is included in this

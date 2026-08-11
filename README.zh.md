@@ -2,9 +2,9 @@
 
 [English](README.md) · **中文**
 
-面向 Agent Harness 的可组合多模态能力。
+基于 Qwen-MM-Plugins 二次开发 · 新增智谱免费 GLM 视觉后端。
 
-FreeGLM 是一组可按能力安装的 Agent Skills 与 MCP servers，覆盖本地媒体和文件 I/O、云端媒体理解、搜索、长视频记忆、媒体生成与剪辑，以及 3D/CAD 工作流。项目衍生自 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins)（Apache-2.0），并为 `vision_chat`、`ocr`、`grounding` 增加智谱 GLM-4.6V-Flash 后端；后端选择遵循明确配置，不会比较价格或延迟后自动择优。
+FreeGLM 是在 Qwen 团队开源的 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins)（Apache-2.0）基础上继续改造的衍生项目。它保留并扩展上游可按能力安装的多模态 Agent Skills 与 MCP servers，并新增智谱当前免费的 GLM-4.6V-Flash 模型，作为 `vision_chat`、`ocr`、`grounding` 的可选视觉后端。免费状态以智谱当前官方政策为准；后端选择遵循明确配置，不会根据价格或延迟自动择优。
 
 ## 目录
 
@@ -30,7 +30,7 @@ FreeGLM 是一组可按能力安装的 Agent Skills 与 MCP servers，覆盖本�
 | 能力 | 做什么 | 安装名 | Cookbook |
 |---|---|---|---|
 | **core** | 本地 I/O：读取图片/视频、检查媒体元数据、可视化受支持的文档/数据/代码/3D/GIS/notebook 格式，以及裁剪、标注或保存帧 | `freeglm-core` | [link](cookbooks/core/usage.md) |
-| **api** | 外部媒体理解服务。`vision_chat` / `ocr` / `grounding` 支持 DashScope Qwen 或智谱 GLM；Omni、专用 ASR 与 SAM3 分割各有自己的服务依赖 | `freeglm-api` | [link](cookbooks/api/usage.md) |
+| **api** | 外部媒体理解服务。`vision_chat` / `ocr` / `grounding` 支持 DashScope Qwen 或智谱当前免费的 GLM-4.6V-Flash；Omni、专用 ASR 与 SAM3 分割各有自己的服务依赖 | `freeglm-api` | [link](cookbooks/api/usage.md) |
 | **search** | 通过 Serper 做网页搜索、页面抽取和反查图。本地图片反查会上传到第三方公开图床，必须先取得用户明确同意 | `freeglm-search` | [link](cookbooks/search/usage.md) |
 | **video-memory** | 长视频记忆：层次化图记忆，支撑超长视频问答 | `freeglm-video-memory` | [link](cookbooks/video-memory/usage.md) |
 | **video-edit** | 视频剪辑 + 生成：剪辑工作流 + 图片 / 视频 / 音频生成 | `freeglm-video-edit` | — |
@@ -99,7 +99,7 @@ qwen extensions install https://github.com/yenns7/freeglm.git:freeglm-<cap> --co
 
 API 类工具需要 key —— 原生读图 / 视频 / 文档不需要：
 
-- `ZHIPU_API_KEY` —— **GLM-4.6V-Flash** 视觉后端，供 `vision_chat` / `ocr` / `grounding` 使用。只设这一个 key，VL 工具就会自动路由到智谱（无需 DashScope）。可选：`ZHIPU_BASE_URL`、`ZHIPU_VISION_MODEL`
+- `ZHIPU_API_KEY` —— 把智谱当前免费的 **GLM-4.6V-Flash** 模型作为 `vision_chat` / `ocr` / `grounding` 的视觉后端。只设这一个 key，VL 工具就会自动路由到智谱（无需 DashScope）；免费状态以智谱官方政策为准。可选：`ZHIPU_BASE_URL`、`ZHIPU_VISION_MODEL`
 - `DASHSCOPE_API_KEY` —— `vision_chat` / `ocr` / `grounding`（Qwen 后端）/ `transcribe_audio` / Omni 音视频理解 / 生成类 / video-memory 构建
 - `SERPER_API_KEY` —— `web_search` / `web_extractor` / `image_search`
 

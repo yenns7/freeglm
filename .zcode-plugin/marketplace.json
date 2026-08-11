@@ -5,7 +5,7 @@
     "url": "https://github.com/yenns7/freeglm"
   },
   "metadata": {
-    "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
+    "description": "Built on Qwen-MM-Plugins: multimodal Agent Skills + MCP servers, extended with Zhipu's currently free GLM-4.6V-Flash vision backend",
     "version": "1.0.2"
   },
   "plugins": [
