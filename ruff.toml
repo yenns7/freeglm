@@ -1,0 +1,36 @@
+# Ruff config for FreeGLM
+# Lint focuses on real problems (pyflakes F = unused imports/vars/dead code);
+# E501 is ignored because some tool descriptions / URLs are intentionally long.
+
+target-version = "py310"
+line-length = 120
+# First-party code lives under src/ (shared library + capabilities' server packages).
+src = ["src"]
+# Test fixtures (incl. sample notebooks) must not be reformatted; internal/ is
+# dev-only ops tooling (GPU embedding server) that isn't part of the shipped package.
+# Vendored addon dirs are third-party code (blender-mcp / freecad-mcp) that runs inside
+# Blender/FreeCAD's own Python — excluded from our wheel and kept verbatim to stay in
+# sync with upstream, so they're excluded from lint too (their FreeCAD/Gui/Workbench globals
+# are app-injected — F821 there is a false positive, and their bare-excepts are upstream style).
+# They live at src/capabilities/<cap>/freeglm_<cap>/vendor/.
+extend-exclude = ["tests/assets", "internal", "src/capabilities/*/*/vendor"]
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[lint.isort]
+# Server packages + the shared library/framework (all under src/); pin them as first-party
+# so import grouping is deterministic regardless of where ruff runs.
+known-first-party = [
+    "mcp_framework",
+    "shared",
+    "freeglm_core",
+    "freeglm_api",
+    "freeglm_search",
+    "freeglm_video_memory",
+    "freeglm_video_edit",
+    "freeglm_example",
+    "freeglm_blender",
+    "freeglm_freecad",
+]

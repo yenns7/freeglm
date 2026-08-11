@@ -1,0 +1,23 @@
+1
+00:00:01,000 --> 00:00:04,500
+Welcome to the FreeGLM demo.
+
+2
+00:00:05,000 --> 00:00:09,200
+This tool supports reading images,
+videos, and documents.
+
+3
+00:00:10,000 --> 00:00:14,800
+You can visualize PDFs, code files,
+spreadsheets, and more.
+
+4
+00:00:15,500 --> 00:00:19,000
+All rendering happens locally
+before being sent to VL APIs.
+
+5
+00:00:20,000 --> 00:00:24,500
+Let's explore the different
+file types supported.

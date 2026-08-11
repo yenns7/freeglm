@@ -1,0 +1,30 @@
+solid sample
+  facet normal 0 0 -1
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 0.5 1 0
+    endloop
+  endfacet
+  facet normal 0 -0.94 0.33
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 0.5 0.33 1
+    endloop
+  endfacet
+  facet normal -0.88 0.31 0.33
+    outer loop
+      vertex 0 0 0
+      vertex 0.5 1 0
+      vertex 0.5 0.33 1
+    endloop
+  endfacet
+  facet normal 0.88 0.31 0.33
+    outer loop
+      vertex 1 0 0
+      vertex 0.5 1 0
+      vertex 0.5 0.33 1
+    endloop
+  endfacet
+endsolid sample

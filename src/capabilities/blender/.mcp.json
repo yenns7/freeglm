@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "freeglm-blender": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "freeglm[blender] @ git+https://github.com/yenns7/freeglm.git@main",
+        "freeglm-blender"
+      ],
+      "env": {"FREEGLM_AUTOLAUNCH": "1"}
+    }
+  }
+}

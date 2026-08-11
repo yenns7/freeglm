@@ -1,0 +1,7 @@
+{
+  "name": "freeglm-api",
+  "version": "1.0.0",
+  "description": "FreeGLM api — cloud APIs for understanding media, by model family: VL (vision chat, OCR, grounding), Omni A/V (timestamped captioning, ASR / multi-speaker diarization, temporal grounding, event counting), plus ASR and segmentation (SAM3), exposed as an MCP server. VL runs on DashScope Qwen (default) or Zhipu GLM-4.6V-Flash (auto when only ZHIPU_API_KEY is set); Omni/ASR/segmentation on DashScope.",
+  "skills": "./skill",
+  "mcpServers": "./.mcp.json"
+}

@@ -1,0 +1,20 @@
+FreeGLM
+Copyright (c) 2026 yenns7
+
+This product is a derived work of:
+
+  Qwen-MM-Plugins
+  Copyright (c) QwenLM / Alibaba Group
+  https://github.com/QwenLM/Qwen-MM-Plugins
+  Licensed under the Apache License, Version 2.0.
+
+FreeGLM is a fork of Qwen-MM-Plugins that renames the project and adds a
+Zhipu GLM-4.6V-Flash vision backend (provider routing for vision_chat / ocr /
+grounding, video-to-frames degradation on the Zhipu backend, enable_thinking
+isolation, and ZHIPU_* configuration/verification wiring).
+
+Both the original project and this derived work are distributed under the
+Apache License, Version 2.0. A copy of the license is included in this
+repository as LICENSE. In accordance with the license, this notice preserves
+the attribution of the upstream project; all upstream copyright, patent, and
+trademark notices remain in effect.

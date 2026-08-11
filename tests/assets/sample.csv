@@ -1,0 +1,16 @@
+city,country,population,area_km2,gdp_billion_usd,continent
+Tokyo,Japan,37400068,2191,1920,Asia
+Delhi,India,30290936,1484,370,Asia
+Shanghai,China,27058480,6341,560,Asia
+São Paulo,Brazil,22043028,1521,430,South America
+Mexico City,Mexico,21782378,1485,390,North America
+Cairo,Egypt,20076000,3085,130,Africa
+Mumbai,India,20411274,603,310,Asia
+Beijing,China,20384000,16411,510,Asia
+Dhaka,Bangladesh,21006000,306,110,Asia
+Osaka,Japan,19165340,5107,680,Asia
+New York,United States,18819000,783,1540,North America
+Karachi,Pakistan,16093786,3780,80,Asia
+Istanbul,Turkey,15462452,5461,240,Europe
+Buenos Aires,Argentina,15153729,4758,180,South America
+Kolkata,India,14850066,1887,150,Asia

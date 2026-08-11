@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px 32px; }
+    .header h1 { font-size: 24px; font-weight: 600; }
+    .header p { opacity: 0.8; margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 24px 32px; }
+    .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h3 { color: #1a1a2e; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card .value { font-size: 36px; font-weight: 700; margin: 8px 0; }
+    .card .change { font-size: 13px; }
+    .card .change.up { color: #10b981; }
+    .card .change.down { color: #ef4444; }
+    table { width: 100%; border-collapse: collapse; margin: 24px 32px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: calc(100% - 64px); }
+    th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 13px; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .status.active { background: #d1fae5; color: #065f46; }
+    .status.pending { background: #fef3c7; color: #92400e; }
+    .status.error { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Analytics Dashboard</h1>
+    <p>Real-time metrics overview</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>Total Users</h3>
+      <div class="value" style="color: #667eea;">12,847</div>
+      <div class="change up">+12.5% from last month</div>
+    </div>
+    <div class="card">
+      <h3>Revenue</h3>
+      <div class="value" style="color: #764ba2;">$48.2K</div>
+      <div class="change up">+8.3% from last month</div>
+    </div>
+    <div class="card">
+      <h3>Error Rate</h3>
+      <div class="value" style="color: #ef4444;">0.12%</div>
+      <div class="change down">-2.1% from last month</div>
+    </div>
+  </div>
+  <table>
+    <tr><th>Service</th><th>Requests/s</th><th>Latency (p99)</th><th>Status</th></tr>
+    <tr><td>api-gateway</td><td>2,451</td><td>45ms</td><td><span class="status active">Active</span></td></tr>
+    <tr><td>auth-service</td><td>892</td><td>120ms</td><td><span class="status active">Active</span></td></tr>
+    <tr><td>data-pipeline</td><td>156</td><td>890ms</td><td><span class="status pending">Degraded</span></td></tr>
+    <tr><td>ml-inference</td><td>0</td><td>—</td><td><span class="status error">Down</span></td></tr>
+  </table>
+</body>
+</html>

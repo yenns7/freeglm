@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.10.9"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Resolve the full platform profile
+        run: uv sync --all-extras --dry-run --python 3.12
+
+      - name: Run tests without external services
+        run: >-
+          uv run --no-project
+          --python 3.12
+          --with pytest
+          --with "mcp>=1,<2"
+          --with "anyio>=4,<5"
+          --with "pydantic>=2"
+          --with "pillow<12"
+          --with "numpy<3"
+          --with requests
+          --with openai
+          python -m pytest -q -m "not reachability"
+
+      - name: Check manifests
+        if: runner.os == 'Linux'
+        run: python scripts/check_manifests.py
+
+      - name: Check Bash syntax
+        shell: bash
+        run: |
+          bash -n install.sh scripts/dev-install.sh scripts/dev-plugin.sh
+          bash -n src/capabilities/video-memory/skill/script/build_memory/build_memory.sh
+          bash -n src/capabilities/video-edit/skill/scripts/*.sh
+
+  windows-checkout:
+    name: windows checkout
+    runs-on: windows-latest
+    steps:
+      # Checkout itself rejects forbidden path components, reserved DOS names,
+      # and names ending in dots or spaces.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false

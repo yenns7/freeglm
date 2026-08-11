@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "freeglm-video-memory": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "freeglm[video-memory] @ git+https://github.com/yenns7/freeglm.git@main",
+        "freeglm-video-memory"
+      ]
+    }
+  }
+}

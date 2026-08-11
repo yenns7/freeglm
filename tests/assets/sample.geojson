@@ -1,0 +1,46 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [121.47, 31.23]},
+      "properties": {"name": "Shanghai", "population": 24870000, "type": "city"}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [116.40, 39.90]},
+      "properties": {"name": "Beijing", "population": 21540000, "type": "city"}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [113.26, 23.13]},
+      "properties": {"name": "Guangzhou", "population": 18676000, "type": "city"}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [114.06, 22.54]},
+      "properties": {"name": "Shenzhen", "population": 17560000, "type": "city"}
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [104.07, 30.67]},
+      "properties": {"name": "Chengdu", "population": 16330000, "type": "city"}
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[119.5, 29.5], [122.5, 29.5], [122.5, 32.5], [119.5, 32.5], [119.5, 29.5]]]
+      },
+      "properties": {"name": "Yangtze River Delta", "type": "region"}
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[104.07, 30.67], [106.55, 29.56], [111.30, 30.70], [114.30, 30.60], [117.27, 31.86], [118.78, 32.06], [121.47, 31.23]]
+      },
+      "properties": {"name": "Yangtze River (approx)", "type": "river"}
+    }
+  ]
+}

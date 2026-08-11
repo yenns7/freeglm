@@ -1,0 +1,33 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+
+\title{Attention Mechanism in Transformers}
+\author{Test Author}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Self-Attention}
+The scaled dot-product attention is defined as:
+\begin{equation}
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\end{equation}
+where $Q$, $K$, $V$ are the query, key, and value matrices, and $d_k$ is the dimension of the key vectors.
+
+\section{Multi-Head Attention}
+Multi-head attention allows the model to attend to information from different representation subspaces:
+\begin{align}
+\text{MultiHead}(Q, K, V) &= \text{Concat}(\text{head}_1, \ldots, \text{head}_h)W^O \\
+\text{where head}_i &= \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)
+\end{align}
+
+\section{Positional Encoding}
+Since the model contains no recurrence, positional encodings are added:
+\begin{align}
+PE_{(pos, 2i)} &= \sin\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right) \\
+PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
+\end{align}
+
+\end{document}
