@@ -26,7 +26,7 @@
 
 ## 智谱 GLM：最短接入路径
 
-智谱官方流程是登录开放平台、创建 API Key，并使用通用 OpenAI 兼容端点 `https://open.bigmodel.cn/api/paas/v4/`。FreeGLM 默认模型是 `glm-4.6v-flash`。请以[智谱 HTTP API 指南](https://docs.bigmodel.cn/cn/guide/develop/http/introduction)和 [GLM-4.6V-Flash 模型文档](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash)为准。
+智谱当前把 GLM-4.6V-Flash 标注为 GLM-4.6V 的免费版本。官方接入流程是登录开放平台、创建 API Key，并使用通用 OpenAI 兼容端点 `https://open.bigmodel.cn/api/paas/v4/`；FreeGLM 默认使用 `glm-4.6v-flash`。免费状态以智谱当前政策为准，请以[智谱 HTTP API 指南](https://docs.bigmodel.cn/cn/guide/develop/http/introduction)和 [GLM-4.6V-Flash 模型文档](https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash)为准。
 
 1. 安装 `freeglm-api`，或在仓库中运行引导式安装器。
 2. 运行 `bash install.sh configure`。

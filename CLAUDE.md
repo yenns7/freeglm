@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FreeGLM is an Agent Skills + MCP Tools platform for vision-language models. Each capability lives in one directory under `src/capabilities/<name>/`, holding any of: a `skill/` (the Agent Skill) and a `<import_name>/` MCP-server package — each part optional. Main subsystems:
+FreeGLM is a derivative Agent Skills + MCP Tools platform built directly on the Qwen team's Apache-2.0 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins). It preserves and extends the upstream multimodal capability set and adds Zhipu's currently free GLM-4.6V-Flash model as an optional vision backend. Each capability lives in one directory under `src/capabilities/<name>/`, holding any of: a `skill/` (the Agent Skill) and a `<import_name>/` MCP-server package — each part optional. Main subsystems:
 
 1. **freeglm-core** — Local file capability: read and visualize any file (images, video, PDF/Office, code, data, 3D, notebooks, GIS) via `read_image`/`read_video`/`media_info`/`visualize`, plus image tools (`crop`/`draw_bbox`/`save_view`). `src/capabilities/core/` (skill + `freeglm_core/` server).
-2. **freeglm-api** — Cloud APIs for understanding media, split by model family into three subpackages (directory == category): `vl/` (`vision_chat`, `ocr`, `grounding` — two OpenAI-compatible backends via `shared.api_openai`: DashScope Qwen (default, `qwen3.7-plus`) or Zhipu GLM (`glm-4.6v-flash`, auto-selected when only `ZHIPU_API_KEY` is set, or per call `provider="zhipu"`; Zhipu has no video modality, so videos degrade to locally-sampled image frames there)), `omni/` (Qwen-Omni A/V: `omni_av_caption`, `omni_asr`/`omni_asr_timestamped`/`omni_multi_speaker_asr`, `omni_av_grounding`, `omni_av_counting`, `omni_music_caption` — via `shared.api_omni`, DashScope only), and `others/` (`transcribe_audio` — Qwen3-ASR, `segmentation` — SAM3); the non-VL families remain DashScope-only. 12 tools total. `src/capabilities/api/` (skill + `freeglm_api/` server).
+2. **freeglm-api** — Cloud APIs for understanding media, split by model family into three subpackages (directory == category): `vl/` (`vision_chat`, `ocr`, `grounding` — two OpenAI-compatible backends via `shared.api_openai`: DashScope Qwen (default, `qwen3.7-plus`) or Zhipu's currently free GLM model (`glm-4.6v-flash`, auto-selected when only `ZHIPU_API_KEY` is set, or per call `provider="zhipu"`; provider-reachable videos use native `video_url`, while a local file without OSS falls back to locally sampled image frames)), `omni/` (Qwen-Omni A/V: `omni_av_caption`, `omni_asr`/`omni_asr_timestamped`/`omni_multi_speaker_asr`, `omni_av_grounding`, `omni_av_counting`, `omni_music_caption` — via `shared.api_omni`, DashScope only), and `others/` (`transcribe_audio` — Qwen3-ASR, `segmentation` — SAM3); the non-VL families remain DashScope-only. 12 tools total. `src/capabilities/api/` (skill + `freeglm_api/` server).
 3. **freeglm-search** — Web + reverse-image search to confirm facts: `web_search`, `web_extractor`, `image_search`; currently Serper. `src/capabilities/search/` (skill + `freeglm_search/` server).
 4. **freeglm-video-memory** — Hierarchical graph memory for long video QA. 4-level tree: Root → SuperEvent → MacroEvent → Subgraph, with embedding-based semantic search. `src/capabilities/video-memory/` (skill + `freeglm_video_memory/` server).
 5. **freeglm-video-edit** — Video-editing skill + image/video/audio **generation** MCP tools (DashScope, via `shared.api_dashscope`). `src/capabilities/video-edit/` (skill + `freeglm_video_edit/` server).
@@ -42,8 +42,8 @@ claude plugin install freeglm-core@freeglm
 printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | python3 src/capabilities/core/freeglm_core
 
 # Tests / lint
-python3 -m pytest tests/
-ruff format . && ruff check . --fix
+uv run --with pytest --extra all pytest -m "not reachability" tests/
+uvx ruff check .
 ```
 
 ## Architecture

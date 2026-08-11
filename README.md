@@ -2,9 +2,9 @@
 
 **English** · [中文](README.zh.md)
 
-Composable multimodal capabilities for agent harnesses.
+Built on Qwen-MM-Plugins · Extended with a free GLM vision backend.
 
-FreeGLM is a set of installable Agent Skills and MCP servers for local media and file I/O, cloud media understanding, search, long-video memory, media generation and editing, and 3D/CAD workflows. It is derived from [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0) and adds a Zhipu GLM-4.6V-Flash backend for `vision_chat`, `ocr`, and `grounding`; backend selection follows explicit configuration, not a price or latency comparison.
+FreeGLM is a derivative project built directly on the Qwen team's open-source [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0). It preserves and extends the upstream project's installable multimodal Agent Skills and MCP servers, and adds Zhipu's currently free GLM-4.6V-Flash model as an optional vision backend for `vision_chat`, `ocr`, and `grounding`. Free availability follows Zhipu's current official policy; backend selection follows explicit configuration, not an automatic price or latency comparison.
 
 ## Contents
 
@@ -30,7 +30,7 @@ We ship [**cookbooks**](cookbooks/) of these plugins in action — each capabili
 | Capability | What it does | Install name | Cookbook |
 |---|---|---|---|
 | **core** | Local I/O: read images/video, inspect media metadata, visualize supported document/data/code/3D/GIS/notebook formats, and crop, annotate, or save frames | `freeglm-core` | [link](cookbooks/core/usage.md) |
-| **api** | External media-understanding services. `vision_chat` / `ocr` / `grounding` support DashScope Qwen or Zhipu GLM; Omni, dedicated ASR, and SAM3 segmentation have their own service requirements | `freeglm-api` | [link](cookbooks/api/usage.md) |
+| **api** | External media-understanding services. `vision_chat` / `ocr` / `grounding` support DashScope Qwen or Zhipu's currently free GLM-4.6V-Flash model; Omni, dedicated ASR, and SAM3 segmentation have their own service requirements | `freeglm-api` | [link](cookbooks/api/usage.md) |
 | **search** | Web search, page extraction, and reverse-image search via Serper. Reverse-searching a local image requires explicit consent because it is uploaded to a third-party public host | `freeglm-search` | [link](cookbooks/search/usage.md) |
 | **video-memory** | Long-video memory: a hierarchical graph memory that powers QA over very long videos | `freeglm-video-memory` | [TBD](cookbooks/video-memory/usage.md) |
 | **video-edit** | Video editing + generation: editing workflows + image / video / audio generation | `freeglm-video-edit` | [TBD](cookbooks/video-edit/usage.md) |
@@ -100,7 +100,7 @@ qwen extensions install https://github.com/yenns7/freeglm.git:freeglm-<cap> --co
 
 The API-based tools need a key — native image / video / document reading doesn't:
 
-- `ZHIPU_API_KEY` — the **GLM-4.6V-Flash** vision backend for `vision_chat` / `ocr` / `grounding`. Set it alone and the VL tools route to Zhipu automatically (no DashScope key needed). Optional: `ZHIPU_BASE_URL`, `ZHIPU_VISION_MODEL`
+- `ZHIPU_API_KEY` — Zhipu's currently free **GLM-4.6V-Flash** model as the vision backend for `vision_chat` / `ocr` / `grounding`. Set it alone and the VL tools route to Zhipu automatically (no DashScope key needed). Free availability follows Zhipu's official policy. Optional: `ZHIPU_BASE_URL`, `ZHIPU_VISION_MODEL`
 - `DASHSCOPE_API_KEY` — `vision_chat` / `ocr` / `grounding` (Qwen backend) / `transcribe_audio` / Omni audio-video understanding / generation / video-memory build
 - `SERPER_API_KEY` — `web_search` / `web_extractor` / `image_search`
 
