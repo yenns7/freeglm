@@ -74,7 +74,7 @@ def main() -> int:
     if not api_key:
         print(
             "ERROR: DASHSCOPE_API_KEY not found. Export it in this shell, OR add it to "
-            "~/.freeglm/config as `DASHSCOPE_API_KEY=sk-...`. "
+            "the protected ~/.freeglm/config via `bash install.sh configure`. "
             "Do NOT paste the key into the conversation.",
             file=sys.stderr,
         )

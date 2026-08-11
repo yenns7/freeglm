@@ -19,6 +19,10 @@ wsl --install -d Ubuntu
 
 没有插件市场的 harness 需要在各自的配置里注册 **skill** 和 **MCP server**。**Qwen Code** 和 **Gemini CLI** 已被[引导式安装器](../../README.zh.md#-安装)自动化（`bash install.sh` → 选对应 harness）；其余（opencode、pi、QwenPaw 等）为手动 —— 见下方各 harness 步骤。其它 harness 最省事的办法是**让 agent 帮你装**（「装一下 `freeglm-<cap>`」）。
 
+自动化安装器公开支持 `FREEGLM_REPO`、`FREEGLM_REF`、`FREEGLM_NO_TUI` 和
+`FREEGLM_SPIN_TIMEOUT`；旧的 `QMP_*` 名称继续作为兼容别名。远端默认固定到不可变的
+`v1.0.1` tag。
+
 每个能力都是 `freeglm-<cap>`、uvx extras 为 `[<cap>]`；下面每个块里把 `<cap>` 换成具体能力名（`core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`）。
 
 Claude Code 也可以走手动安装 —— 和插件市场的区别只在工具名：插件市场装的带 plugin 前缀 + server key（就是能力自己的名字，例如 `freeglm-<cap>`），手动 `mcp add` 用你自定义的 server name。以某个能力的 `read_image` 为例：
@@ -33,7 +37,7 @@ Claude Code 也可以走手动安装 —— 和插件市场的区别只在工具
 ln -s "$(pwd)/src/capabilities/<cap>/skill" ~/.claude/skills/freeglm-<cap>
 # 2) MCP（本地代码把 --from 换成 "$(pwd)[<cap>]"）
 claude mcp add freeglm-<cap> -- \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
 ```
 
 换能力时，把 skill 路径、`[<cap>]` profile、入口名 `freeglm-<cap>` 一起换成对应能力的。
@@ -48,19 +52,21 @@ claude mcp add freeglm-<cap> -- \
   "mcp": {
     "freeglm-<cap>": {
       "type": "local",
-      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-<cap>"],
-      "environment": { "DASHSCOPE_API_KEY": "{env:DASHSCOPE_API_KEY}" },
+      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"],
       "enabled": true
     }
   }
 }
 ```
 
+不要在这里注入 API key 占位符。子进程会继承真实存在的变量，FreeGLM 也会自行读取私有的
+`~/.freeglm/config`；未设置变量若被展开为空串，反而会遮蔽配置文件中的有效值。
+
 ```bash
 cp -r src/capabilities/<cap>/skill ~/.config/opencode/skills/freeglm-<cap>   # opencode 也会读 ~/.claude/skills/
 ```
 
-无头运行：`opencode run --auto "…"`。（自定义 OpenAI 兼容 provider 必须用 `modalities` 把模型标为可读图，否则 opencode 会丢掉返回的图片。）
+无头运行：`opencode run "…"`。（自定义 OpenAI 兼容 provider 必须用 `modalities` 把模型标为可读图，否则 opencode 会丢掉返回的图片。）
 
 ### Qwen Code
 
@@ -74,7 +80,7 @@ qwen extensions install https://github.com/yenns7/freeglm.git:freeglm-<cap> --co
 
 ```bash
 qwen mcp add freeglm-<cap> --scope user --trust --timeout 600000 \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
 ```
 
 无头运行：`qwen -p "…" --yolo -o text`。卸载：`qwen extensions uninstall freeglm-<cap>`。
@@ -85,11 +91,11 @@ qwen mcp add freeglm-<cap> --scope user --trust --timeout 600000 \
 
 ```bash
 gemini mcp add -s user freeglm-<cap> \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
 gemini skills install https://github.com/yenns7/freeglm.git --path src/capabilities/<cap>/skill --consent
 ```
 
-本地 checkout 时，`gemini extensions link src/capabilities/<cap>` 可同时打包两者。MCP 只在**受信任目录**下加载（提示时信任该目录即可）。无头运行：`gemini -p "…" -y`。卸载：`gemini mcp remove -s user freeglm-<cap>` + `gemini skills uninstall freeglm-<cap>`。
+能力目录不是独立 Gemini extension（有意不带 `gemini-extension.json`），所以远端和本地安装都应使用上面两条原生命令，不要运行 `gemini extensions link`。MCP 只在**受信任目录**下加载（提示时信任该目录即可）。无头运行：`gemini -p "…" -y`。卸载：`gemini mcp remove -s user freeglm-<cap>` + `gemini skills uninstall freeglm-<cap>`。
 
 > Gemini CLI 只对接 **Google Gemini API** —— 不支持外部 / OpenAI 兼容的模型 provider。
 
@@ -109,25 +115,23 @@ pi install npm:pi-mcp-adapter                                               # �
   "settings": { "toolPrefix": "none" },
   "mcpServers": { "freeglm-<cap>": {
     "command": "uvx",
-    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-<cap>"],
-    "env": { "DASHSCOPE_API_KEY": "${DASHSCOPE_API_KEY}" },
-    "directTools": ["read_image", "ocr", "visualize"]
+    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
   } }
 }
 ```
 
-纯 skill 能力（edu-agent）只拷 skill 即可用。无头运行：`pi -p "…"`。
+不要写通用 `directTools` 列表：每个能力的工具名不同。server 会继承进程里真实存在的环境变量，并自行读取 `~/.freeglm/config`；省略 `env` 还能避免未设置变量被展开为空串后遮蔽配置文件中的有效 key。纯 skill 能力（edu-agent）只拷 skill 即可用。无头运行：`pi -p "…"`。
 
 ### QwenPaw 2.0
 
-QwenPaw 2.0 本身不支持插件市场，所以只能手动安装，以 `<cap>` 为例：
+QwenPaw 2.0 本身不支持插件市场，所以只能手动安装。把 `<agent_id>` 换成当前 Agent/workspace id（默认 Agent 为 `default`），把 `<cap>` 换成能力名：
 
 ```bash
 # 1) skill
-cp -r src/capabilities/<cap>/skill ~/.qwenpaw/workspaces/default/skills/freeglm-<cap>
+cp -r src/capabilities/<cap>/skill ~/.qwenpaw/workspaces/<agent_id>/skills/freeglm-<cap>
 qwenpaw skills list      # 触发 reconcile，登记进 manifest（此时 disabled）
 qwenpaw skills config    # 交互勾选启用
-# 2) MCP：写进 ~/.qwenpaw/workspaces/default/agent.json 的 mcp.clients（无 CLI，改文件即可，有热加载）
+# 2) MCP：写进 ~/.qwenpaw/workspaces/<agent_id>/agent.json 的 mcp.clients（无 CLI，改文件即可，有热加载）
 ```
 
 ```json
@@ -139,7 +143,7 @@ qwenpaw skills config    # 交互勾选启用
         "enabled": true,
         "transport": "stdio",
         "command": "uvx",
-        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-<cap>"]
+        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
       }
     }
   }
@@ -148,13 +152,11 @@ qwenpaw skills config    # 交互勾选启用
 
 ### ZCode
 
-ZCode 是 Claude 兼容的插件市场型 harness：把这个仓库加为 marketplace，再用它原生的 `install`
-动词装每个能力（在 ZCode 界面或其插件管理器里操作 —— ZCode 不在 `PATH` 上提供 CLI）。以 `<cap>` 为例：
-
-```text
-marketplace add  https://github.com/yenns7/freeglm.git
-install          freeglm-<cap>@freeglm
-```
+ZCode 是 Claude 兼容的插件市场型 harness，不在 `PATH` 上提供插件 CLI。请在已经打开的
+workspace 中按真实 UI 操作：进入 **Settings → Plugins**，点击 **Create → Add marketplace**，
+输入 `https://github.com/yenns7/freeglm.git`；然后在 Personal marketplace 中找到
+`freeglm-<cap>` 并点击 **Install**。发布新版本后，通过 marketplace source 面板的
+**Refresh** 操作刷新。
 
 仓库开箱即支持 zcode：
 
@@ -185,7 +187,7 @@ VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **�
 
 如何查看缺少的系统工具：
 
-- 用 uvx 查看：`uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap> --check-system`。
+- 用 uvx 查看：`uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap> --check-system`。
 - server 启动时，若某个已装 extra 缺对应系统工具，会在 stderr 打印一行告警。
 - 实际工具调用时，返回「请安装 X」的文字提示，其它工具照常用。
 
@@ -204,9 +206,9 @@ VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **�
 
 > 网络边界：`npx hyperframes init` 和 TTS 调用需联网；**渲染本身是离线的**（所以字体 / KaTeX / GSAP 要自托管进 `dist/`）。完整清单见该 skill 的 `SKILL.md` → "Prerequisites（环境准备）"。
 
-### 环境变量
+### 常用环境变量
 
-配置从 shell 环境读取，其次回退到 `~/.freeglm/config`（每行一个 KEY=VALUE，仅当变量未在环境中时才读取——这样 GUI 启动的 harness 也能拿到）。实际上通常只需要上面那两个 API Key，其余都可选。要编辑该文件，运行安装器的 **Configure** 项或 `<entry> --setup`——两者现在都会按分类（凭据、目录/上限、video-memory、OSS、Blender/FreeCAD 主机、edu-agent）浏览并编辑**整份**配置，而不再只是 API Key。自动化场景用 `<entry> --set KEY=VALUE …` / `<entry> --unset KEY …`。
+配置先从 shell 环境读取；变量不存在时再回退到由安装器管理的 `~/.freeglm/config`，因此 GUI 启动的 harness 也能读取。请通过 `bash install.sh configure`（或 `<entry> --setup`）交互配置凭据，不要把密钥值粘进命令或文档。自动化场景应通过 secret store 注入下表中的常用环境变量名。本表有意不穷举：[`install.sh`](../../install.sh) 的 `CONFIG_SPEC` 是与运行时同步的可执行完整目录，可通过 `bash install.sh configure` 浏览。
 
 | 变量 | 用于 | 默认 |
 |---|---|---|
@@ -219,6 +221,7 @@ VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **�
 | `SAM3_SERVER_URL` | `segmentation`（SAM3 服务） | *(分割必填)* |
 | `ASR_SERVER_URLS` | `transcribe_audio` 自建兜底（逗号分隔、轮询），DashScope 失败时用 | *未设 → 仅用 DashScope* |
 | `FREEGLM_FFMPEG_TIMEOUT` | ffmpeg 超时（秒） | `120` |
+| `FREEGLM_CHAT_TIMEOUT` | OpenAI 兼容聊天请求超时（秒） | `600` |
 | `FREEGLM_MAX_TOTAL_FRAMES` | 单个视频最多抽帧数 | `600` |
 | `FREEGLM_CACHE` | 渲染派生产物的缓存目录 | 系统缓存目录 |
 | `FREEGLM_CONFIG_DIR` | 覆盖 GUI harness 读取密钥的配置目录 | `~/.freeglm` |
@@ -231,7 +234,8 @@ VL 工具（`vision_chat` / `ocr` / `grounding`）需要 `DASHSCOPE_API_KEY` **�
 ```
 src/
 ├── capabilities/            #   每个能力一个目录（可包含 skill 或配套的 mcp tools）
-│   ├── core/                #     vision：read_image / read_video / visualize / ocr / grounding / …
+│   ├── core/                #     本地 I/O：read_image / read_video / visualize / crop / draw_bbox / …
+│   ├── api/                 #     云端媒体理解：vision_chat / ocr / grounding / Omni / ASR / segmentation
 │   ├── video-memory/        #     长视频记忆：层次图 + 语义检索
 │   ├── video-edit/          #     视频剪辑 + 图片/视频/音频生成
 │   ├── blender/             #     Blender 瘦客户端（随包 addon：vendor/ + --launch-app）

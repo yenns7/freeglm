@@ -14,7 +14,7 @@ Depends only on the `mcp` SDK (bundles FastMCP + pydantic) + anyio, so servers s
 
 from __future__ import annotations
 
-__version__ = "1.0.0"  # distribution version
+__version__ = "1.0.1"  # distribution version
 
 import asyncio
 import importlib
@@ -323,15 +323,18 @@ def usage(import_name: str, note: str = "", *, launchable: bool = False) -> str:
     `note` is the server-specific tail (install hints, required env vars, …).
     `launchable` adds the --launch-app line for capabilities that can start their own app."""
     entry = import_name.replace("_", "-")
-    launch_opt = f"Usage: {entry} [--version | --help | --check-system | --setup | --set KEY=VALUE … | --unset KEY …"
+    launch_opt = (
+        f"Usage: {entry} [--version | --help | --check-system | --setup | "
+        "--set NAME=VALUE … | --unset NAME …"
+    )
     launch_opt += " | --launch-app]\n" if launchable else "]\n"
     text = (
         f"{entry} — MCP server (stdio transport)\n\n"
         f"{launch_opt}"
         "  --check-system   report system tools (ffmpeg/blender/…) pip can't install, + config status\n"
         "  --setup          interactively write the full config to ~/.freeglm/config\n"
-        "  --set KEY=VALUE  non-interactively write config entries (for automation)\n"
-        "  --unset KEY …    non-interactively remove config entries\n"
+        "  --set NAME=VALUE write NON-SECRET config entries (secrets use --setup or environment)\n"
+        "  --unset NAME …   non-interactively remove config entries\n"
     )
     if launchable:
         text += (
@@ -342,18 +345,21 @@ def usage(import_name: str, note: str = "", *, launchable: bool = False) -> str:
 
 
 def config_report(entry: str) -> str:
-    """`--check-system` tail: where the user config file is + whether the API key resolves."""
-    from shared.env import config_file, get_env
+    """`--check-system` tail: config location and presence/source of every credential."""
+    from shared.env import CONFIG_FIELDS, config_file, get_env
 
     path = config_file()
     lines = [f"User config: {path}" + ("" if os.path.exists(path) else f"  (none yet — `{entry} --setup`)")]
-    key = get_env("DASHSCOPE_API_KEY")
-    if key:
-        src = "environment" if os.environ.get("DASHSCOPE_API_KEY") else "config file"
-        masked = f"{key[:5]}…{key[-2:]}" if len(key) > 9 else "set"
-        lines.append(f"  ✓ DASHSCOPE_API_KEY ({src}): {masked}")
-    else:
-        lines.append(f"  ✗ DASHSCOPE_API_KEY not set — run `{entry} --setup`")
+    for key, secret, *_ in CONFIG_FIELDS:
+        if not secret:
+            continue
+        if get_env(key):
+            src = "environment" if os.environ.get(key) is not None else "config file"
+            # Presence is enough for diagnostics. Even partial key material is unnecessary
+            # exposure in terminals and harness logs: show no prefix, suffix, or length hint.
+            lines.append(f"  ✓ {key} ({src}): set")
+        else:
+            lines.append(f"  ✗ {key}: not set")
     return "\n".join(lines)
 
 
@@ -437,7 +443,7 @@ def run_main(import_name: str) -> None:
         _interactive_setup(entry)
         return
     if "--set" in argv:
-        from shared.env import set_config
+        from shared.env import CONFIG_FIELDS, set_config
 
         pairs: dict[str, str] = {}
         for a in argv:
@@ -445,8 +451,18 @@ def run_main(import_name: str) -> None:
             if sep and not k.startswith("-"):
                 pairs[k] = v
         if not pairs:
-            print(f"usage: {entry} --set KEY=VALUE [KEY=VALUE …]")
+            print(f"usage: {entry} --set NAME=VALUE [NAME=VALUE …]")
             return
+        secret_keys = {key for key, secret, *_ in CONFIG_FIELDS if secret}
+        blocked = sorted(secret_keys.intersection(pairs))
+        if blocked:
+            print(
+                "refusing secret values on the command line (visible in shell history/process lists): "
+                + ", ".join(blocked)
+                + f". Use `{entry} --setup` or protected environment variables.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
         print(f"✓ wrote {', '.join(sorted(pairs))} → {set_config(pairs)}")
         return
     if "--unset" in argv:

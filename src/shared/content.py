@@ -25,7 +25,11 @@ def image(data: bytes | str, mime: str = "image/jpeg") -> dict[str, str]:
 
 def text_error(msg: str) -> list[dict[str, str]]:
     """The standard single-block error result: [{"type":"text","text":"Error: ..."}]."""
-    return [{"type": "text", "text": f"Error: {msg}"}]
+    # Tool results are commonly persisted by agent harnesses. Keep signed URLs and credentials
+    # out of both retry logs and the final MCP error returned to the model.
+    from shared.retry import redact_sensitive_error
+
+    return [{"type": "text", "text": f"Error: {redact_sensitive_error(msg)}"}]
 
 
 def require_file(path: str) -> list[dict[str, str]] | None:

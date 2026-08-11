@@ -29,12 +29,6 @@ class VisionChatArgs(BaseModel):
         default=None,
         description="Video URLs or local file paths. Local files are auto-extracted into frames.",
     )
-    base_url: Optional[str] = Field(
-        default=None, description="API base URL (defaults to DASHSCOPE_BASE_URL / ZHIPU_BASE_URL per provider)"
-    )
-    api_key: Optional[str] = Field(
-        default=None, description="API key (defaults to DASHSCOPE_API_KEY / ZHIPU_API_KEY per provider)"
-    )
     max_tokens: int = Field(default=2048, description="Maximum tokens in response (default: 2048)")
     temperature: Optional[float] = Field(default=None, description="Sampling temperature")
     dry_run: bool = Field(default=False, description="If true, return the request payload without calling the endpoint")

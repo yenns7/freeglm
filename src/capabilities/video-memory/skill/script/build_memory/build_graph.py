@@ -1502,7 +1502,6 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", default=None, help="Output directory (default: <video_path>.memory)")
     parser.add_argument("--video-key", default="")
     parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--api-key", default=None)
     parser.add_argument("--phase1-only", action="store_true", help="Run only Phase 1 (segmentation), then exit")
     parser.add_argument(
         "--phase3-only", action="store_true", help="Run only Phase 3 (load subgraphs + aggregation + embeddings)"
@@ -1545,7 +1544,7 @@ if __name__ == "__main__":
     if args.output_dir is None:
         args.output_dir = os.path.abspath(args.video_path) + ".memory"
 
-    _api_key = args.api_key or get_env("DASHSCOPE_API_KEY") or ""
+    _api_key = get_env("DASHSCOPE_API_KEY") or ""
 
     if args.merge_chunks:
         n = merge_chunks(args.merge_chunks, args.output_dir)
@@ -1654,7 +1653,7 @@ if __name__ == "__main__":
             video_key=args.video_key,
             output_dir=args.output_dir,
             model=args.model,
-            api_key=args.api_key,
+            api_key=_api_key,
             min_scene_sec=args.min_scene_sec,
             max_scene_sec=args.max_scene_sec,
             scene_threshold=args.scene_threshold,

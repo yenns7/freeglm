@@ -1,7 +1,7 @@
 {
   "name": "freeglm-api",
-  "version": "1.0.0",
-  "description": "FreeGLM api — cloud APIs for understanding media, by model family: VL (vision chat, OCR, grounding), Omni A/V (timestamped captioning, ASR / multi-speaker diarization, temporal grounding, event counting), plus ASR and segmentation (SAM3), exposed as an MCP server; currently supports DashScope.",
+  "version": "1.0.1",
+  "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope.",
   "author": {
     "name": "yenns7",
     "url": "https://github.com/yenns7/freeglm"
@@ -12,7 +12,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@main",
+        "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.1",
         "freeglm-api"
       ]
     }

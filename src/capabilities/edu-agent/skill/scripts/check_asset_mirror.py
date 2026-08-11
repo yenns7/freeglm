@@ -31,12 +31,12 @@ def main() -> int:
             missing.append(str(p))
 
     if missing:
-        print(f"FAIL: asset mirror missing in compositions/ — GSAP/KaTeX/fonts will not load in sub-compositions.")
-        print(f"  Fix: copy assets into compositions/ directory:")
+        print("FAIL: asset mirror missing in compositions/ — GSAP/KaTeX/fonts will not load in sub-compositions.")
+        print("  Fix: copy assets into compositions/ directory:")
         print(f"    cp -r {dist}/gsap {dist}/compositions/gsap")
         print(f"    cp -r {dist}/katex {dist}/compositions/katex")
         print(f"    cp -r {dist}/assets {dist}/compositions/assets")
-        print(f"  Missing files:")
+        print("  Missing files:")
         for m in missing:
             print(f"    {m}")
         return 1

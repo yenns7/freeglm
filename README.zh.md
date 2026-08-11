@@ -2,14 +2,16 @@
 
 [English](README.md) · **中文**
 
-*「眼贴膜」—— 让 Agent 重新看清世界。* 😌
+面向 Agent Harness 的可组合多模态能力。
 
-面向视觉语言模型的原生多模态插件 —— 衍生自 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins)（Apache-2.0），在原有 DashScope Qwen 后端之上，新增了**智谱 GLM-4.6V-Flash** 视觉后端。让任何 Agent Harness 都具备原生多模态能力，并自动帮你选到最快的便宜后端。
+FreeGLM 是一组可按能力安装的 Agent Skills 与 MCP servers，覆盖本地媒体和文件 I/O、云端媒体理解、搜索、长视频记忆、媒体生成与剪辑，以及 3D/CAD 工作流。项目衍生自 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins)（Apache-2.0），并为 `vision_chat`、`ocr`、`grounding` 增加智谱 GLM-4.6V-Flash 后端；后端选择遵循明确配置，不会比较价格或延迟后自动择优。
 
 ## 目录
 
 - [🧩 能力](#-能力)
 - [🏗 架构](#-架构)
+- [🗺 项目地图](docs/zh/project-map.md)
+- [🤖 Agent 接入与路由](docs/zh/agent-integration.md)
 - [📦 安装](#-安装)
 - [🔧 依赖](#-依赖)
 - [🔑 配置](#-配置)
@@ -26,9 +28,9 @@
 
 | 能力 | 做什么 | 安装名 | Cookbook |
 |---|---|---|---|
-| **core** | 本地 I/O 插件：动态分辨率读取图片与视频，可视化任意文件(如文档、3D 等)——外加一些图像工具(裁剪 / 标注 / 抽帧) | `freeglm-core` | [link](cookbooks/core/usage.md) |
-| **api** | 云端 API 理解媒体，按模型族划分。**VL**（视觉对话、OCR、grounding）跑在**双后端**上：DashScope Qwen（默认，`qwen3.7-plus`）或**智谱 GLM（`glm-4.6v-flash`）** —— 只设 `ZHIPU_API_KEY` 时自动选中，或每次调用用 `provider="zhipu"` 指定。另有 DashScope 上的 Omni 音视频（带时间戳 / 说话人标签的 ASR、多说话人分离、分段描述、时序定位、事件计数）、ASR 与分割（SAM3） | `freeglm-api` | [link](cookbooks/api/usage.md) |
-| **search** | 联网 + 反查图搜索用于事实核验:网页搜索、网页抽取、反查图;目前支持 Serper | `freeglm-search` | [link](cookbooks/search/usage.md) |
+| **core** | 本地 I/O：读取图片/视频、检查媒体元数据、可视化受支持的文档/数据/代码/3D/GIS/notebook 格式，以及裁剪、标注或保存帧 | `freeglm-core` | [link](cookbooks/core/usage.md) |
+| **api** | 外部媒体理解服务。`vision_chat` / `ocr` / `grounding` 支持 DashScope Qwen 或智谱 GLM；Omni、专用 ASR 与 SAM3 分割各有自己的服务依赖 | `freeglm-api` | [link](cookbooks/api/usage.md) |
+| **search** | 通过 Serper 做网页搜索、页面抽取和反查图。本地图片反查会上传到第三方公开图床，必须先取得用户明确同意 | `freeglm-search` | [link](cookbooks/search/usage.md) |
 | **video-memory** | 长视频记忆：层次化图记忆，支撑超长视频问答 | `freeglm-video-memory` | [link](cookbooks/video-memory/usage.md) |
 | **video-edit** | 视频剪辑 + 生成：剪辑工作流 + 图片 / 视频 / 音频生成 | `freeglm-video-edit` | — |
 | **blender** | Blender 三维建模：对一个**正在运行**的 Blender 写 Python（瘦客户端，22 工具）—— 建模 / 材质 / 灯光 / 渲染 | `freeglm-blender` | [link](cookbooks/blender/usage.md) |
@@ -39,6 +41,8 @@
 
 ![FreeGLM 架构](docs/assets/architecture.svg)
 
+目录职责、能力边界、依赖和数据出境行为见[项目地图](docs/zh/project-map.md)；工具选择、长视频路由和多 Agent 协作见 [Agent 接入与路由](docs/zh/agent-integration.md)。
+
 ## 📦 安装
 
 一个能力 = 一个 **skill**（让模型知道有这套工具）+ 一个可选的 **MCP server**（工具本体，`uvx` 按需拉起 —— 依赖 [uv](https://docs.astral.sh/uv/)，不用手动 pip）。
@@ -48,10 +52,10 @@
 一个脚本搞定 **install · configure · verify · uninstall**，覆盖它支持的所有 harness（Claude Code · Codex · Qoder · OpenClaw · Qwen Code · Gemini CLI）。它底层调各 harness 自己的原生安装 —— 不重造轮子 —— 并把配置写进统一的 `~/.freeglm/config`（GUI / 终端都读），一次配好：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/main/install.sh | bash   # 引导菜单
+curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/v1.0.1/install.sh | bash   # 引导菜单
 ```
 
-**ZCode** 不在 `PATH` 上提供 CLI，所以是一步手动操作：把本仓库加为插件市场，再在 ZCode 界面里按能力安装（`marketplace add https://github.com/yenns7/freeglm.git` → `install freeglm-core@freeglm`）。仓库自带 zcode 就绪清单（`.zcode-plugin/`）；完整指南见 [docs/zh/adapting_zcode.md](docs/zh/adapting_zcode.md)。
+**ZCode** 不在 `PATH` 上提供插件 CLI。打开一个 workspace，然后按 **Settings → Plugins → Create → Add marketplace URL → Install** 为每项所需能力安装。仓库在 `.zcode-plugin/` 下自带 ZCode 就绪清单；精确界面流程和清单模型见 [ZCode 适配指南](docs/zh/adapting_zcode.md)。
 
 也可以只跑单个动作 —— `bash install.sh install` / `configure` / `verify` / `uninstall`（`configure` 和 `verify` 各自做什么，见下面的[配置](#-配置)与[依赖](#-依赖)）。
 
@@ -64,7 +68,7 @@ curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/main/install.sh | ba
 
 想用 harness 自己的命令，或你在 opencode / pi / QwenPaw 上（安装器不覆盖这几个）？那就自己注册 skill + MCP。
 
-**有插件市场的 harness**（Claude Code · Qoder · Codex · OpenClaw · Qwen Code）—— 加市场，再装某个能力（把 `<cap>` 换成 `core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`）。默认先装 `core`（本地 I/O 基座,其他能力都建立在它之上）,再按需装其他:
+**有插件市场的 harness**（Claude Code · Qoder · Codex · OpenClaw · Qwen Code）—— 加市场，再装某个能力（把 `<cap>` 换成 `core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`）。Agent 需要检查本地文件/媒体时安装 `core`，再只添加工作流实际需要的独立云端、搜索、剪辑或应用能力：
 
 ```bash
 # Claude Code
@@ -103,6 +107,8 @@ API 类工具需要 key —— 原生读图 / 视频 / 文档不需要：
 ```bash
 bash install.sh configure     # 交互式：API key、端点、目录、OSS、主机地址 —— 整份分组配置
 ```
+
+凭据只能保存在进程环境变量或私有的 `~/.freeglm/config` 中。绝不要把 key 粘贴进聊天、echo 到日志、提交到仓库，或作为工具参数传入。Agent 可以检查凭据是否已配置，但不得读取或显示其值。外部能力会把查询或媒体发送给所配置的服务商；处理私有材料前先查看[数据出境表](docs/zh/project-map.md#网络数据出境与凭据)。
 
 非交互 / 自动化配置与完整环境变量表见 [`docs/zh/installation.md`](docs/zh/installation.md)。
 
@@ -147,39 +153,36 @@ bash install.sh configure     # 交互式：API key、端点、目录、OSS、�
 
 ## 🤖 给 Agent 的快速接入提示词
 
-FreeGLM 就是给 Agent 用的，最快的接入方式是把下面这段直接粘给 agent（Claude Code / Codex / Qoder —— 任何已装好 `freeglm-<cap>` 的 harness）。它告诉模型两个 VL 后端怎么选，以及一个关键规则：**读图必须走 MCP 工具**，而不是用 harness 自带的内置 OCR / 视觉能力 —— 这样你才能用上配置好的模型（比如免费的 GLM-4.6V-Flash），而不是落到本机 macOS OCR 上：
+安装所需能力后，可把下面的精简策略粘给 Agent。完整路由和多 Agent 协作规则见 [Agent 接入与路由](docs/zh/agent-integration.md)。
 
 ```text
-你有 FreeGLM 的 MCP 工具可用。规则如下：
+你有 FreeGLM 能力可用。把每项任务交给所属能力：
 
-1. 媒体一律走工具。要读、要 OCR、要描述、要框选任何图片 / 视频，必须调用
-   `freeglm-*` 的 MCP 工具（vision_chat / ocr / grounding）。绝不要退回用
-   harness 自带的内置图像 / OCR 能力来做这些事。
-
-2. VL 后端（vision_chat / ocr / grounding）有两个 provider，自动选择：
-   - 智谱 GLM-4.6V-Flash：只设了 ZHIPU_API_KEY 时默认选中（无需任何 DashScope 配置）。
-     速度快、有免费额度、不输出思考 token。模型 `glm-4.6v-flash`，端点 open.bigmodel.cn。
-   - DashScope Qwen：其余情况默认（DASHSCOPE_API_KEY）。模型 `qwen3.7-plus`。
-   - 想强制指定某后端，调用时传 provider="zhipu" 或 provider="dashscope"。
-   - 智谱没有视频模态：视频会在本地被采样成一帧帧图片 —— 这很正常，
-     video_max_frames 别给太大（约 1fps，帧数 ≈ 视频秒数）。
-
-3. 其它能力（Omni 音视频、ASR、分割、生成、搜索）分别需要 DASHSCOPE_API_KEY /
-   SERPER_API_KEY —— GLM 不覆盖这些。
-
-4. 每个工作流先用一次 dry_run=true 预览请求 payload，再真正调用。
+1. 本地读取、元数据、可视化、裁剪、标注和抽帧用 freeglm-core；只有需要外部模型/
+   服务做 VQA、OCR、grounding、Omni、ASR 或分割时才用 freeglm-api。仅配置
+   ZHIPU_API_KEY 且未配置 DASHSCOPE_API_KEY 时，VL 才自动选择 GLM；否则默认 DashScope
+   Qwen，除非显式指定 provider。
+2. 30 分钟及以上视频的全片问答用 freeglm-video-memory；短视频问答用 core；剪辑用
+   freeglm-video-edit，只有长素材确实需要全片语义导航时才组合 video-memory。断言帧级细节前，
+   必须回到原视频窄时间窗复核。
+3. 只有核验外部事实时才用 freeglm-search。本地图片反查前必须取得明确同意；未经同意不得
+   上传私有媒体。
+4. 绝不索要、打印、echo、粘贴到聊天或通过工具参数传递凭据。凭据只能来自进程环境变量或
+   私有的 ~/.freeglm/config。
+5. 主 Agent 负责最终答案和共享文件。只把独立、有边界的工作委派给并行 Agent，为每个 Agent
+   分配互不重叠的输出，再由主 Agent 统一验证和集成。
 ```
 
 ## 🧪 开发
 
 开发环境、贡献规范和检查命令见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。详细指南：
 [本地调试](docs/zh/local_development.md) · [添加能力](docs/zh/how_to_add_new_capability.md) ·
-[测试](docs/zh/testing.md)。
+[测试](docs/zh/testing.md) · [项目地图](docs/zh/project-map.md) · [Agent 接入](docs/zh/agent-integration.md)。
 
 ## 📄 License 与署名
 
 Apache-2.0 —— 见 [`LICENSE`](LICENSE) 与 [NOTICE](NOTICE)。
 
-本项目是 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins)（Qwen 团队，Apache-2.0）的**衍生作品** —— 一个改名后的 fork，并在上游 VL 工具之上新增了**智谱 GLM-4.6V-Flash** 视觉后端（provider 路由、视频转帧降级、`enable_thinking` 隔离、配置 / 校验接线）。上游变更可通过 GitHub 的 fork 关系追踪。
+本项目是 [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins)（Qwen 团队，Apache-2.0）的**衍生作品**，导入基线为上游提交 [`8d6ea5a1f658260743307c52c2024ec87599fa48`](https://github.com/QwenLM/Qwen-MM-Plugins/commit/8d6ea5a1f658260743307c52c2024ec87599fa48)。FreeGLM 以独立 Git 历史发布，**不是** GitHub formal fork，因此不能把 GitHub fork 关系当作溯源依据。来源基线和本地改造范围见 [`UPSTREAM.md`](UPSTREAM.md)。
 
 Blender 和 FreeCAD 能力内置(vendor)了第三方 MIT 许可的代码,署名见 [`src/capabilities/blender/NOTICE.md`](src/capabilities/blender/NOTICE.md) 和 [`src/capabilities/freecad/NOTICE.md`](src/capabilities/freecad/NOTICE.md)。

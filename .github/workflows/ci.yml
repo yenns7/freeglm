@@ -49,6 +49,10 @@ jobs:
         if: runner.os == 'Linux'
         run: python scripts/check_manifests.py
 
+      - name: Check security contracts
+        if: runner.os == 'Linux'
+        run: python scripts/check_security_contract.py
+
       - name: Check Bash syntax
         shell: bash
         run: |

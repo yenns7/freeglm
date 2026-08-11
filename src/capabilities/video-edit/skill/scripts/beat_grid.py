@@ -52,8 +52,8 @@ def main() -> None:
     args = ap.parse_args()
 
     try:
-        import numpy as np
         import librosa
+        import numpy as np
         from scipy.signal import butter, sosfilt
     except ImportError as e:
         sys.exit(
@@ -107,7 +107,7 @@ def main() -> None:
     print(f"raw tempo : {float(np.atleast_1d(tempo_raw)[0]):.2f} BPM (beat_track scalar — do not trust)")
     print(f"fitted    : BPM={bpm:.2f}  t0={t0:.4f}s  T={T:.5f}s")
     print(f"residual  : ±{res_ms:.0f}ms  -> grid {'TRUSTABLE' if grid_ok else 'NOT steady (segment-fit needed)'}")
-    print(f"\nstrongest kick beats (pin big slams here):")
+    print("\nstrongest kick beats (pin big slams here):")
     print(f"  {'beat#':>6} {'time(s)':>9} {'frame@'+str(int(args.fps)):>9} {'energy':>8}")
     for n, t, e in top:
         print(f"  {n:>6} {t:>9.3f} {round(t*args.fps):>9} {e:>8.2f}")

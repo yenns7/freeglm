@@ -28,7 +28,6 @@ class ImageSearchArgs(BaseModel):
         min_length=4,
         max_length=4,
     )
-    api_key: Optional[str] = Field(default=None, description="Serper API key (defaults to SERPER_API_KEY).")
     allow_public_upload: bool = Field(
         default=False,
         description=(
@@ -152,7 +151,7 @@ def handle(arguments: dict[str, Any]) -> list[dict[str, Any]]:
     image_path = arguments.get("image_path", "")
     api_key = resolve_serper_key(arguments)
     if not api_key:
-        return text_error("no API key. Set SERPER_API_KEY or pass api_key.")
+        return text_error("no API key. Set SERPER_API_KEY in the environment or FreeGLM config.")
 
     is_url = isinstance(image_path, str) and image_path.startswith(("http://", "https://"))
     bbox = arguments.get("bbox")

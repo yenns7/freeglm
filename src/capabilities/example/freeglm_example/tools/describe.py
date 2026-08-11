@@ -24,8 +24,6 @@ class DescribeArgs(BaseModel):
     prompt: str = Field(description="What to ask the model (e.g. 'Describe this image', or any question).")
     image_path: str | None = Field(default=None, description="Optional local image file to attach to the prompt.")
     model: str | None = Field(default=None, description="Model id override (else the shared default).")
-    api_key: str | None = Field(default=None, description="Override DASHSCOPE_API_KEY (else environment / config).")
-    base_url: str | None = Field(default=None, description="Override the OpenAI-compatible base URL.")
     dry_run: bool = Field(default=False, description="Return the request that WOULD be sent, without calling the API.")
 
 
@@ -45,7 +43,7 @@ def handle(arguments: dict[str, Any]) -> list[dict[str, Any]]:
     image_path = arguments.get("image_path")
     model = arguments.get("model") or default_vl_model()
 
-    # Endpoint + key: explicit args > provider env (DASHSCOPE_*/ZHIPU_*, env or config) > defaults.
+    # Endpoint + key come from user-controlled environment/config, never MCP tool arguments.
     base_url, api_key = resolve_openai_endpoint(arguments)
 
     # Build the OpenAI-style user message: optional image part, then the text prompt.

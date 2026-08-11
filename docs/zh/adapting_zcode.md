@@ -14,7 +14,7 @@ FreeGLM 是 **harness 无关**的:每个能力 = 一个 `skill/`(让模型知道
 | Qoder | Qoder 插件市场 | `.qoder-plugin/plugin.json` + `.mcp.json` |
 | OpenClaw / Qwen Code / Gemini | 原生命令或市场 | 见 `docs/zh/installation.md` |
 
-MCP server 在任何地方都用同一条命令拉起 —— `uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>` —— 所以适配新 harness **永远不需要改代码,只需要改清单**。
+MCP server 在任何地方都从同一个不可变版本拉起 —— `uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>` —— 所以适配新 harness **不需要改服务端代码，只需要改注册清单**。
 
 ## ZCode 适配是怎么接线的
 
@@ -24,19 +24,22 @@ MCP server 在任何地方都用同一条命令拉起 —— `uvx --from "freegl
 
 ```json
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "freeglm",
-  "description": "FreeGLM multimodal capabilities for ZCode — derived from Qwen-MM-Plugins with a Zhipu GLM-4.6V-Flash vision backend",
   "owner": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
+  "metadata": {
+    "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
+    "version": "1.0.1"
+  },
   "plugins": [
-    { "name": "freeglm-core", "description": "…", "author": { "name": "yenns7" }, "source": "./src/capabilities/core" },
-    { "name": "freeglm-api",  "description": "…", "author": { "name": "yenns7" }, "source": "./src/capabilities/api" }
+    { "name": "freeglm-core", "source": "./src/capabilities/core", "description": "…" },
+    { "name": "freeglm-api",  "source": "./src/capabilities/api",  "description": "…" }
   ]
 }
 ```
 
-> 规范市场文件在 `.claude-plugin/marketplace.json`;`.zcode-plugin/marketplace.json` 由它生成(同一 schema)。
-> CI 里的 `scripts/check_manifests.py` 会保证每份平台清单与 `pyproject.toml` 同步。
+> 规范市场文件在 `.claude-plugin/marketplace.json`；仓库内的 `.zcode-plugin/marketplace.json`
+> 镜像其 metadata 和插件条目。CI 里的 `scripts/check_manifests.py` 会同时校验这份镜像、
+> 每个平台清单、不可变发布 ref 和 `pyproject.toml`。
 
 ### 2. 每能力清单(`.zcode-plugin/plugin.json`)
 
@@ -45,14 +48,14 @@ MCP server 在任何地方都用同一条命令拉起 —— `uvx --from "freegl
 ```json
 {
   "name": "freeglm-api",
-  "version": "1.0.0",
-  "description": "FreeGLM api — cloud APIs for understanding media: VL (vision_chat / ocr / grounding), Omni A/V, ASR, segmentation (SAM3), exposed as an MCP server.",
+  "version": "1.0.1",
+  "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope.",
   "author": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
   "skills": "./skill",
   "mcpServers": {
     "freeglm-api": {
       "command": "uvx",
-      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-api"]
+      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-api"]
     }
   }
 }
@@ -63,9 +66,16 @@ MCP server 在任何地方都用同一条命令拉起 —— `uvx --from "freegl
 ### 3. ZCode 实际装了什么
 
 - **`skills`** —— 复制/注册,让模型知道有这套工具(里面的 `SKILL.md`)。
-- **`mcpServers`** —— 一个 stdio MCP server,由 `uvx` 按需拉起。首次启动会从 git URL 解析
+- **`mcpServers`** —— 一个 stdio MCP server,由 `uvx` 按需拉起。首次启动会从 `v1.0.1` git tag 解析
   `freeglm[<cap>]` 并把它的 Python extras 装进隔离缓存 —— 无需手动 pip。`blender` / `freecad`
   额外在 `env` 里传 `FREEGLM_AUTOLAUNCH=1`。
+
+### 4. 在 ZCode 中安装
+
+ZCode 不在 `PATH` 上提供插件 CLI。先打开一个 workspace，再进入 **Settings → Plugins →
+Create → Add marketplace**，输入 `https://github.com/yenns7/freeglm.git`，在 Personal 区域找到
+需要的 `freeglm-<cap>` 并点击 **Install**。发布新版本后，在 marketplace source 面板执行
+**Refresh**。
 
 ## 为其它 harness 复刻
 
@@ -78,21 +88,9 @@ MCP server 在任何地方都用同一条命令拉起 —— `uvx --from "freegl
 
 > 上游项目的经验法则:**一个市场、每 harness 一份清单、加平台零代码改动**。
 
-## ZCode 快速接入提示词
+## Agent 路由策略
 
-装好 `freeglm-*` 能力后,把下面这段粘给 ZCode 里的 agent,让它强制走工具处理媒体(而不是
-内置 OCR),并正确选择 VL 后端:
-
-```text
-你有 FreeGLM 的 MCP 工具可用。规则如下:
-1. 要读、要 OCR、要描述、要框选任何图片 / 视频,必须调用 freeglm-* 的 MCP 工具
-   (vision_chat / ocr / grounding)。绝不要退回 harness 自带的内置图像 / OCR 能力。
-2. VL 工具两个后端,自动选择:只设了 ZHIPU_API_KEY 时默认智谱 GLM-4.6V-Flash
-   (模型 glm-4.6v-flash,端点 open.bigmodel.cn);否则 DashScope Qwen(模型 qwen3.7-plus)。
-   想强制指定,调用时传 provider="zhipu" 或 provider="dashscope"。
-3. 智谱没有视频模态 —— 视频会在本地采样成一帧帧图片;video_max_frames 给到约视频秒数(~1fps)。
-4. Omni 音视频、ASR、分割、生成、搜索分别需要 DASHSCOPE_API_KEY / SERPER_API_KEY。
-5. 每个工作流先用一次 dry_run=true 预览请求 payload。
-```
-
-(中文版同时收录在 `README.zh.md` → 给 Agent 的快速接入提示词。)
+安装后请直接采用统一的 [Agent 接入与路由策略](agent-integration.md)，不要再维护一份
+ZCode 专用 prompt。该策略要求检查实时 Skill/MCP 清单、按能力归属路由，禁止通过 prompt
+或工具参数传递凭据，覆盖私有媒体上传同意，并且只有实时工具 schema 明确支持且存在具体
+诊断需求时才使用 preview/`dry_run`。

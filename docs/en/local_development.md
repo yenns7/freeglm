@@ -51,7 +51,7 @@ To get closer to production (isolated environment + profile-based dependency ins
 To verify plugin.json / marketplace.json / the install-and-register flow itself, but using local un-pushed code: temporarily point the capability's plugin manifest at your local checkout, install and test, then revert.
 
 ```bash
-scripts/dev-plugin.sh core          # switch core's --from from git@main to file://<repo>
+scripts/dev-plugin.sh core          # switch core's --from from the release tag to file://<repo>
 claude plugin marketplace add "$(pwd)"      # point the marketplace at the local directory → reads the workspace manifest
 claude plugin install freeglm-core@freeglm
 # ... test (tool names carry the prefix: mcp__plugin_freeglm-core_freeglm-core__<tool>) ...

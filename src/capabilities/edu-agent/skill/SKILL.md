@@ -1,22 +1,22 @@
 ---
 name: freeglm-edu-agent
 description: |
-  Generate step-by-step math problem-solving tutorial videos in Chinese (Mandarin).
-  Use when: (1) a user provides a math problem and wants an explanation video,
-  (2) someone says "make a math tutorial", "explain this equation", "create a
+  Generate step-by-step K-12 math and science tutorial videos in Chinese (Mandarin).
+  Use when: (1) a user provides a supported math or science problem and wants an explanation video,
+  (2) someone says "make a tutorial", "explain this equation or experiment", "create a
   teaching video for this problem", "讲解这道题", "生成解题视频",
-  (3) the user wants a Chinese-language math lesson covering formulas, equations,
-  or geometric figures, (4) the user shares a math problem in text or LaTeX and
-  asks for a video walkthrough, (5) the input is an image_assets/ folder
+  (3) the user wants a Chinese-language lesson covering formulas, equations,
+  geometric figures, or the supported physics, chemistry, and biology visual components,
+  (4) the user shares a problem in text, LaTeX, a single image, or (5) the input is an image_assets/ folder
   containing problem images — the skill will extract the problem via visual
   recognition, solve it, and generate a tutorial video. Teaching components are
   rendered as realistic objects (solid opaque panels, 3D cards, SVG figures) with a
   modern aurora mesh aesthetic.
 ---
 
-# Math Tutorial Video Generator
+# K-12 Math and Science Tutorial Video Generator
 
-Transforms a math problem into a step-by-step Chinese-language video tutorial. Teaching components — equations, geometric figures, solution steps — are rendered as realistic objects: solid opaque panels (glass-look via borders + layered shadow, NO `backdrop-filter`, NO translucency), 3D metallic cards, animated SVG constructions, on themed backgrounds with animated gradient orbs and smooth ambient effects. The default theme is "Aurora Scholar" (blue wave texture + indigo/violet/cyan orbs); 4 alternative light themes are available (清雅湖蓝, 柔紫轻盈, 薄荷清新, 暖黄纸感) for visual variety across different problem types — see the Background Theme Catalog in design-system.md.
+Transforms a supported K-12 math or science problem into a step-by-step Chinese-language video tutorial. The skill accepts text, LaTeX, a single problem image, or an `image_assets/` directory. It is suitable when the required subject matter can be represented with the bundled equation, geometry, mechanics, optics, circuit, chemistry, wave, fluid, or biology components; it is not a general-purpose scientific simulator or a substitute for subject-matter review. Teaching components are rendered as solid opaque panels, cards, and animated SVG constructions on themed backgrounds. The default theme is "Aurora Scholar"; four alternative light themes are available in the Background Theme Catalog in `design-system.md`.
 
 ## Prerequisites (环境准备 — 开工前必查)
 
@@ -30,7 +30,7 @@ This is a **skill-only** capability (no MCP server), so its runtime dependencies
 | **Python 3 + pip** | TTS script | `python3 -m pip --version` |
 | **`dashscope` `soundfile` `numpy` `requests`** | Step 3 TTS synthesis + assembly | `python3 -m pip install dashscope soundfile numpy requests` |
 | **ffmpeg** | loudness normalization (`loudnorm`) + frame extraction for self-check | `brew install ffmpeg` / `apt install ffmpeg` |
-| **`DASHSCOPE_API_KEY`** | Qwen-TTS (`qwen3-tts-flash`) | `export DASHSCOPE_API_KEY="sk-xxx"`, **or** put `DASHSCOPE_API_KEY=sk-xxx` in `~/.freeglm/config` for GUI-launched setups that don't inherit shell exports. `$EDU_SKILL_ROOT/scripts/generate_voice.py` reads it at runtime — **never `cat`/paste the key into the conversation.** |
+| **DashScope credential** | Qwen-TTS (`qwen3-tts-flash`) | From a source checkout, run `bash install.sh configure`; it collects the secret through hidden input and writes the private config with mode `0600`. A managed runtime may instead inject the credential into the process environment through its secret manager. Never place the value in chat, logs, tool arguments, command history, or source files. |
 
 > **Network boundary:** `npx hyperframes init` and the TTS calls need internet. The *render* itself is air-gapped — that is why fonts / KaTeX / GSAP must be self-hosted into `dist/` (see Step 5 Prerequisites). DashScope TTS may rate-limit under high concurrency; if you hit `Throttling.RateQuota`, lower the thread-pool worker count and add backoff (see step-3).
 
@@ -60,7 +60,7 @@ test -f "$EDU_SKILL_ROOT/scripts/precheck.py" || { echo "invalid EDU_SKILL_ROOT"
 
 Read [references/step-0-image-input.md](references/step-0-image-input.md).
 
-Read all images from the `image_assets/` folder using the `Read` tool (Claude's multimodal vision directly interprets image content). Extract the complete problem text, convert all math expressions to LaTeX, and describe any figures or diagrams. If JSONL metadata is available (subject, sub_subject, question_type, stepwise_explanation), use it as context hints but treat the image as ground truth.
+Read all images from the `image_assets/` folder using the agent harness's image-input facility. Extract the complete problem text, convert mathematical expressions to LaTeX, and describe any figures or diagrams. If JSONL metadata is available (`subject`, `sub_subject`, `question_type`, `stepwise_explanation`), use it as context hints but treat the image as ground truth.
 
 <HARD-GATE>
 `PROBLEM.md` must exist with: complete problem text in Chinese, all math expressions in LaTeX, and figure descriptions (if applicable). All images in `image_assets/` must have been read.
@@ -70,7 +70,7 @@ Read all images from the `image_assets/` folder using the `Read` tool (Claude's 
 
 Read [references/step-1-problem-analysis.md](references/step-1-problem-analysis.md).
 
-Parse the input math problem, classify its type, extract knowledge points, and produce a complete solution outline with numbered steps. When `PROBLEM.md` exists from Step 0, use it as the primary input source.
+Parse the input problem, classify its subject and type, extract knowledge points, and produce a complete solution outline with numbered steps. When `PROBLEM.md` exists from Step 0, use it as the primary input source.
 
 <HARD-GATE>
 `ANALYSIS.md` must exist with: problem statement, type classification, solution steps, and final answer — all verified for correctness.
@@ -88,9 +88,9 @@ Write the Chinese narration script with scene markers. Apply math symbol pronunc
 
 ## Step 3: Voice Generation
 
-Read [references/step-3-voice-generation.md](references/step-3-voice-generation.md). TTS strategy: **DashScope Qwen-TTS via the official SDK** (`dashscope.MultiModalConversation`, model `qwen3-tts-flash`, HTTP — returns a WAV URL) — no self-hosted TTS node, no URL wiring. **Speed + accuracy:** synthesize every sentence **concurrently** through a thread pool (wall-clock ≈ the slowest single sentence, not the sum), then measure each returned clip's real duration for exact per-sentence timestamps. No Whisper dependency.
+Read [references/step-3-voice-generation.md](references/step-3-voice-generation.md). TTS strategy: **DashScope Qwen-TTS via the official SDK** (`dashscope.MultiModalConversation`, model `qwen3-tts-flash`, HTTP — returns a WAV URL) — no self-hosted TTS node and no custom inference URL. Synthesize sentences concurrently through a bounded thread pool, then measure each returned clip's duration for per-sentence timestamps. Actual wall-clock time depends on service latency, rate limits, and retry behavior. No Whisper dependency.
 
-Generate standard Mandarin TTS audio. Each sentence's exact duration is measured from its returned audio clip, producing both `narration.wav` and `transcript.json` in one pass with 100% accurate timestamps. No Whisper transcription needed.
+Generate standard Mandarin TTS audio. Each sentence's duration is measured from its returned audio clip, producing both `narration.wav` and `transcript.json` in one pass with measured timestamps. No Whisper transcription is needed.
 
 <HARD-GATE>
 `narration.wav`, `transcript.json`, and `captions.json` must exist. Audio must be loudness-normalized with `ffmpeg loudnorm` (EBU R128, -16 LUFS). Audio is generated with DashScope Qwen-TTS (`dashscope.MultiModalConversation`, model `qwen3-tts-flash`) — `DASHSCOPE_API_KEY` required. Timestamps are measured from TTS output (not estimated). Text in transcript/captions comes from the original script. Timestamps mapped to scene boundaries.
@@ -199,14 +199,14 @@ Read [design-system.md](design-system.md) before writing ANY HTML. It defines th
 
 ## Non-Negotiable Rules
 
-1. **Caption text from original script (字幕必须用原始脚本文本).** Video captions/subtitles MUST use text from `captions.json` (which contains the original narration script text with timestamps measured from TTS output). The timestamps are 100% accurate because they are measured from each sentence's actual TTS audio duration during sentence-by-sentence synthesis. The OpenCC `t2s` conversion is no longer needed — transcript text comes directly from the original script.
+1. **Caption text from original script (字幕必须用原始脚本文本).** Video captions/subtitles MUST use text from `captions.json` (which contains the original narration script text with timestamps measured from TTS output). The timestamp boundaries are derived from each sentence's measured TTS audio duration during sentence-by-sentence synthesis. The OpenCC `t2s` conversion is no longer needed — transcript text comes directly from the original script.
 2. **KaTeX for layout-dependent math; plain HTML/Chinese for simple symbols (复杂公式用KaTeX，简单符号用HTML或中文).** Use KaTeX only when the expression needs math layout features (fractions, roots, summations, matrices). For simple comparisons and standalone symbols (≤, ≥, °, ×), prefer HTML entities or Chinese text directly — e.g., write `<span>OP' ≤ 1</span>` not `katex.render("OP' \\leq 1", ...)` — this avoids the fragile JS backslash-escaping pipeline entirely (see Rule #25). Never display raw LaTeX source code. **When you DO use KaTeX in JS strings, ALWAYS double-escape LaTeX backslashes** — write `"\\\\dfrac{1}{2}"` not `"\\dfrac{1}{2}"`. The `\\d` escape is silent: JS turns `\\d` → `d`, so `\\dfrac` becomes `dfrac` and KaTeX renders italic text "dfrac12" instead of a fraction. This is the single most common rendering bug. After building all compositions, run `python3 "$EDU_SKILL_ROOT/scripts/check_katex_escaping.py" dist` and fix every reported line BEFORE proceeding to Step 6.
 3. **Chinese pacing.** Narration at 3.5-4.0 characters/second. Leave 0.5-1.0s pauses between steps.
 4. **Three layers per scene.** Background treatment (wave texture + aurora mesh orbs) + content layer + accent elements. No flat single-layer scenes. See design-system.md "Background Treatment" for the exact CSS pattern and aurora palette guide.
 5. **Solid opaque panels — frosted glass is FORBIDDEN (禁止毛玻璃，完全避免遮挡).** All content panels use the solid panel style from design-system.md — OPAQUE `background:#ffffff` (or white alpha ≥ 0.92), depth from borders + layered box-shadow + inset top highlight. **NEVER** use `backdrop-filter` / `-webkit-backdrop-filter`, and **NEVER** a see-through translucent panel background — a blurred/see-through panel washes out and OCCLUDES the problem text / diagram / formulas behind it (this is a hard defect). Enforced by `scripts/check_no_glass.py` (in `precheck.py`): render is blocked if any glass/translucent panel is found.
 6. **SVG geometry.** Geometric figures use SVG path drawing animation, never static images.
 7. **Deterministic.** No `Math.random()`, `Date.now()`, or async timeline construction.
-8. **Delegate.** Use the `hyperframes` skill for composition rules, `hyperframes-cli` for CLI commands. TTS uses **DashScope Qwen-TTS via the official SDK** (`dashscope.MultiModalConversation`, model `qwen3-tts-flash`, HTTP) — no self-hosted node, no URL wiring; needs `DASHSCOPE_API_KEY`. Synthesize sentences **concurrently** (thread pool) for speed, and take per-sentence timestamps from each returned clip's measured duration (see step-3-voice-generation.md). This skill defines the math-tutorial domain logic only.
+8. **Delegate.** Use the `hyperframes` skill for composition rules and `hyperframes-cli` for CLI commands. TTS uses **DashScope Qwen-TTS via the official SDK** (`dashscope.MultiModalConversation`, model `qwen3-tts-flash`, HTTP) — no self-hosted node or custom inference URL. Synthesize sentences concurrently with a bounded thread pool and derive per-sentence timestamps from measured clip durations (see `step-3-voice-generation.md`). This skill defines K-12 math/science tutorial domain logic only.
 9. **Dark text on light backgrounds (浅色背景深色文字).** This is a light-theme design system. All text — KaTeX equations, SVG labels, Chinese body text, HTML table cells — MUST use dark colors (`#0f172a` or darker). Every composition MUST include the full "Mandatory Global Color Reset" block from design-system.md: root selector with `color: #0f172a`, `.katex, .katex * { color: #0f172a; }`, `.katex-mathml { display: none !important; }`, and `table, th, td { color: #0f172a; }`. Never use `#fff`, `#f8fafc`, `#e8ecf4`, or any light color for text on the light background.
 10. **Pre-built assets first.** Before writing custom HTML/CSS for any visual object (car, train, candle, battery, lens, etc.), check [assets/ASSET_CATALOG.md](assets/ASSET_CATALOG.md). If a matching component exists, copy its CSS and HTML verbatim. If NO match exists, follow the "Quality Fallback Template" in ASSET_CATALOG.md — every custom object must have ≥3 gradient layers, inset shadows, ground shadow, glow halo, and no CSS @keyframes. Compare against the candle component for quality level.
 11. **No emoji.** Never use emoji characters (🔧⚙️🔵🔴🟢⭕📐✅❌⚡💡 etc.) anywhere in visible text — titles, labels, captions, formula notes, phase titles, badge text, or any string rendered in the video. Headless Chromium has no emoji font installed; all emoji render as □ (tofu boxes) in the final video. Use plain Chinese text or SVG/CSS shapes instead.

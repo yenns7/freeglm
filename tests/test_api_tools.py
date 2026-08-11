@@ -567,8 +567,7 @@ def test_resolve_openai_endpoint_zhipu_and_auto(monkeypatch):
 
 
 def test_resolve_openai_endpoint_auto_never_mixes_providers(monkeypatch):
-    """auto + only Zhipu key: an explicit api_key (no base_url) must NOT land on the DashScope
-    endpoint, and an explicit base_url (no api_key) must pick up the Zhipu key — never 'EMPTY'."""
+    """Explicit keys follow their provider, while an explicit URL never inherits an environment key."""
     monkeypatch.setenv("ZHIPU_API_KEY", "z-key")
     monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
     monkeypatch.delenv("DASHSCOPE_BASE_URL", raising=False)
@@ -577,9 +576,9 @@ def test_resolve_openai_endpoint_auto_never_mixes_providers(monkeypatch):
     url, key = oa.resolve_openai_endpoint({"api_key": "explicit-key"})
     assert url == "https://open.bigmodel.cn/api/paas/v4" and key == "explicit-key"
 
-    # explicit URL only → key must come from ZHIPU_API_KEY (not "EMPTY")
-    url, key = oa.resolve_openai_endpoint({"base_url": "https://glm-proxy.example/v1"})
-    assert url == "https://glm-proxy.example/v1" and key == "z-key"
+    # An untrusted endpoint must not receive the configured Zhipu key implicitly.
+    url, key = oa.resolve_openai_endpoint({"base_url": "https://attacker.example/v1"})
+    assert url == "https://attacker.example/v1" and key == "EMPTY"
 
 
 def test_vision_chat_dry_run_zhipu_payload(monkeypatch, sample_image):

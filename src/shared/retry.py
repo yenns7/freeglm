@@ -11,11 +11,41 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import time
 from typing import Callable, TypeVar
 
 _log = logging.getLogger(__name__)
 T = TypeVar("T")
+
+
+_URL_SECRET_RE = re.compile(r"(https?://[^\s?#]+)(?:[?#][^\s]*)", re.IGNORECASE)
+_NAMED_SECRET_RE = re.compile(
+    r"""(?ix)
+    \b(
+        authorization|proxy-authorization|bearer|
+        api[-_ ]?key|token|access[-_ ]?(?:key(?:[-_ ]?id)?|token)|auth[-_ ]?token|
+        client[-_ ]?secret|secret(?:[-_ ]?key)?|signature|password|
+        [a-z][a-z0-9_]*(?:_api_key|_token|_secret|_secret_key|_password)|
+        oss_(?:ak|sk)
+    )\b[\"']?\s*[:=]\s*(?:bearer\s+)?[\"']?[^\s,;)\]}]+[\"']?
+    """
+)
+_BEARER_RE = re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/=-]{4,}")
+_COMMON_TOKEN_RE = re.compile(
+    r"\b(?:sk-[a-z0-9_-]{8,}|eyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,})\b",
+    re.IGNORECASE,
+)
+
+
+def redact_sensitive_error(error: Exception | str) -> str:
+    """Return a bounded diagnostic with signed URLs and credential-like values redacted."""
+    message = str(error)
+    message = _URL_SECRET_RE.sub(r"\1?<redacted>", message)
+    message = _NAMED_SECRET_RE.sub(r"\1=<redacted>", message)
+    message = _BEARER_RE.sub("Bearer <redacted>", message)
+    message = _COMMON_TOKEN_RE.sub("<redacted>", message)
+    return message[:200]
 
 
 def _wait_seconds(attempt: int, base: float, mode: str, cap: float | None, jitter: float = 0.0) -> float:
@@ -56,14 +86,14 @@ def retry_call(
             if attempt == attempts:
                 break
             wait = _wait_seconds(attempt, base_backoff, mode, cap, jitter)
-            # Log only the exception type + a truncated message: API errors can embed request
-            # context (URLs, payload fragments) that doesn't belong in a warning line.
+            # API errors can embed signed URLs, headers, or payload fragments. Sanitize before the
+            # message reaches stderr, which many harnesses persist as an MCP log.
             log.warning(
-                "call failed (attempt %d/%d): %s: %.200s — retrying in %.1fs",
+                "call failed (attempt %d/%d): %s: %s — retrying in %.1fs",
                 attempt,
                 attempts,
                 type(e).__name__,
-                e,
+                redact_sensitive_error(e),
                 wait,
             )
             time.sleep(wait)

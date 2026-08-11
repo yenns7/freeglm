@@ -1,8 +1,8 @@
 {
   "name": "freeglm-core",
   "displayName": "FreeGLM Core",
-  "version": "1.0.0",
-  "description": "Vision: read/visualize any file (images, video, PDF, Office, code, SVG, 3D, GIS, notebooks) plus OCR, grounding, segmentation, ASR and vision-chat as MCP tools.",
+  "version": "1.0.1",
+  "description": "FreeGLM core — local-only tools to read and visualize images, video, PDF, Office, code, SVG, 3D, GIS, and notebooks, plus crop, bounding-box annotation, and frame extraction. Cloud OCR, grounding, segmentation, ASR, and vision chat live in freeglm-api.",
   "skills": "./skill",
   "mcp": ".mcp.json"
 }

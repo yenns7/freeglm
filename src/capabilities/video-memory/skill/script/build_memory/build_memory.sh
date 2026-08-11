@@ -10,7 +10,9 @@
 # Options:
 #   --output-dir DIR   Output directory (default: <video_path>.memory/)
 #   --model NAME       Model name (default: qwen3.7-plus)
-#   --api-key KEY      DashScope API key (default: $DASHSCOPE_API_KEY)
+#
+# Credentials are read only from DASHSCOPE_API_KEY or ~/.freeglm/config. Keeping secrets out of
+# command-line arguments prevents them from appearing in shell history and process listings.
 
 set -euo pipefail
 
@@ -21,7 +23,6 @@ MODEL=""
 VIDEO_PATH=""
 VIDEO_DIR=""
 OUTPUT_DIR=""
-API_KEY=""
 P2_WORKERS=10
 CHUNK_SEC=3600
 ENABLE_ASR=1
@@ -34,14 +35,13 @@ while [[ $# -gt 0 ]]; do
         --model)       MODEL="$2"; shift 2 ;;
         --video-dir)   VIDEO_DIR="$2"; shift 2 ;;
         --output-dir)  OUTPUT_DIR="$2"; shift 2 ;;
-        --api-key)     API_KEY="$2"; shift 2 ;;
         --p2-workers)  P2_WORKERS="$2"; shift 2 ;;
         --chunk-sec)   CHUNK_SEC="$2"; shift 2 ;;
         --no-asr)          ENABLE_ASR=0; shift ;;
         --asr-model)       ASR_MODEL="$2"; shift 2 ;;
         -*)
             echo "Unknown option: $1"
-            echo "Usage: bash build_memory.sh [VIDEO_PATH] [--video-dir DIR] [--output-dir DIR] [--model NAME] [--api-key KEY]"
+            echo "Usage: bash build_memory.sh [VIDEO_PATH] [--video-dir DIR] [--output-dir DIR] [--model NAME]"
             exit 1
             ;;
         *)  POSITIONAL+=("$1"); shift ;;
@@ -66,16 +66,13 @@ else
 fi
 
 # ── Environment ───────────────────────────────────────────────────────────
-if [[ -n "$API_KEY" ]]; then
-    export DASHSCOPE_API_KEY="$API_KEY"
-fi
 # Fall back to ~/.freeglm/config for any vars not already exported (env wins),
 # mirroring shared/env.py so GUI setups without shell exports still find the key.
 while IFS= read -r _kv; do
     [[ -n "$_kv" ]] && export "$_kv"
 done < <(python "$SCRIPT_DIR/env_config.py" 2>/dev/null || true)
 if [[ -z "${DASHSCOPE_API_KEY:-}" ]]; then
-    echo "ERROR: DASHSCOPE_API_KEY not set. Pass --api-key, export DASHSCOPE_API_KEY, or set it in ~/.freeglm/config."
+    echo "ERROR: DASHSCOPE_API_KEY not set. Export it or set it with 'bash install.sh configure'."
     exit 1
 fi
 # ── Install Python dependencies (if missing) ────────────────────────────
@@ -371,5 +368,5 @@ if [[ -n "$VIDEO_DIR" ]]; then
 fi
 
 echo "ERROR: Provide a video path or --video-dir."
-echo "Usage: bash build_memory.sh [VIDEO_PATH] [--video-dir DIR] [--output-dir DIR] [--model NAME] [--api-key KEY]"
+echo "Usage: bash build_memory.sh [VIDEO_PATH] [--video-dir DIR] [--output-dir DIR] [--model NAME]"
 exit 1

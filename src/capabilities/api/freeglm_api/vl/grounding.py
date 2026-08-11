@@ -24,12 +24,6 @@ class GroundingArgs(BaseModel):
         description="Vision backend: 'auto' (default), 'dashscope', or 'zhipu' (GLM-4.6V-Flash). 'auto' picks DashScope, or Zhipu when only ZHIPU_API_KEY is set.",
     )
     return_img: bool = Field(default=False, description="Return annotated image with bounding boxes drawn")
-    api_key: Optional[str] = Field(
-        default=None, description="API key (defaults to DASHSCOPE_API_KEY / ZHIPU_API_KEY per provider)"
-    )
-    base_url: Optional[str] = Field(
-        default=None, description="API base URL (defaults to DASHSCOPE_BASE_URL / ZHIPU_BASE_URL per provider)"
-    )
 
 
 TOOL: dict[str, Any] = {

@@ -343,8 +343,10 @@ def _static_wire_segments(svg):
             if "dasharray" in t or "marker-" in t:
                 continue
             try:
-                x1 = float(attr(t, "x1")); y1 = float(attr(t, "y1"))
-                x2 = float(attr(t, "x2")); y2 = float(attr(t, "y2"))
+                x1 = float(attr(t, "x1"))
+                y1 = float(attr(t, "y1"))
+                x2 = float(attr(t, "x2"))
+                y2 = float(attr(t, "y2"))
             except (TypeError, ValueError):
                 continue
             if (x1 - x2) ** 2 + (y1 - y2) ** 2 < 4:
@@ -372,8 +374,10 @@ def _component_terminals(svg):
     for m in re.finditer(r"<rect\b[^>]*/?>", svg):
         t = m.group(0)
         try:
-            x = float(attr(t, "x")); y = float(attr(t, "y"))
-            w = float(attr(t, "width")); h = float(attr(t, "height"))
+            x = float(attr(t, "x"))
+            y = float(attr(t, "y"))
+            w = float(attr(t, "width"))
+            h = float(attr(t, "height"))
         except (TypeError, ValueError):
             continue
         if w < 40 or h < 30:
@@ -383,7 +387,9 @@ def _component_terminals(svg):
     for m in re.finditer(r"<circle\b[^>]*/?>", svg):
         t = m.group(0)
         try:
-            cx = float(attr(t, "cx")); cy = float(attr(t, "cy")); r = float(attr(t, "r"))
+            cx = float(attr(t, "cx"))
+            cy = float(attr(t, "cy"))
+            r = float(attr(t, "r"))
         except (TypeError, ValueError):
             continue
         if r < 15:
@@ -406,15 +412,19 @@ def _points_in(body):
     for rm in re.finditer(r"<rect\b[^>]*/?>", body):
         t = rm.group(0)
         try:
-            x = float(attr(t, "x")); y = float(attr(t, "y"))
-            w = float(attr(t, "width")); h = float(attr(t, "height"))
+            x = float(attr(t, "x"))
+            y = float(attr(t, "y"))
+            w = float(attr(t, "width"))
+            h = float(attr(t, "height"))
             pts += [(x, y), (x + w, y + h)]
         except (TypeError, ValueError):
             pass
     for cm in re.finditer(r"<circle\b[^>]*/?>", body):
         t = cm.group(0)
         try:
-            cx = float(attr(t, "cx")); cy = float(attr(t, "cy")); r = float(attr(t, "r"))
+            cx = float(attr(t, "cx"))
+            cy = float(attr(t, "cy"))
+            r = float(attr(t, "r"))
             pts += [(cx - r, cy - r), (cx + r, cy + r)]
         except (TypeError, ValueError):
             pass
@@ -439,7 +449,8 @@ def _source_component_boxes(svg):
         pts = _points_in(gm.group(2))
         if not pts:
             continue
-        xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
         boxes.append((min(xs), min(ys), max(xs), max(ys)))
     return boxes
 

@@ -195,7 +195,8 @@ def main() -> int:
         line = line.strip()
         if line.startswith("{"):
             try:
-                payload = json.loads(line); break
+                payload = json.loads(line)
+                break
             except Exception:
                 continue
     if payload is None:

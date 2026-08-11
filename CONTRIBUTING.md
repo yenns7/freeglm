@@ -37,6 +37,9 @@ Run the relevant targeted tests while developing, then run:
 
 ```bash
 python3 -m pytest tests/
+python3 scripts/check_manifests.py
+python3 scripts/check_security_contract.py
+bash -n install.sh
 ruff format .
 ruff check .
 ```

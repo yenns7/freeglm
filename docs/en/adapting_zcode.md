@@ -19,9 +19,9 @@ thin registration layer that tells the harness where those live:
 | Qoder | Qoder plugin marketplace | `.qoder-plugin/plugin.json` + `.mcp.json` |
 | OpenClaw / Qwen Code / Gemini | native verbs or marketplace | see `docs/en/installation.md` |
 
-The MCP servers themselves are launched the same way everywhere — `uvx --from "freeglm[<cap>] @
-git+https://github.com/yenns7/freeglm.git@main" freeglm-<cap>` — so adapting to a new harness is
-never a code change, only a manifest.
+The MCP servers themselves are launched from the same immutable release everywhere — `uvx --from
+"freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>` — so adapting to
+a new harness is never a server-code change, only a registration manifest.
 
 ## How the ZCode adaptation is wired
 
@@ -31,20 +31,23 @@ A Claude-schema marketplace. ZCode reads this to list FreeGLM's capabilities:
 
 ```json
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "freeglm",
-  "description": "FreeGLM multimodal capabilities for ZCode — derived from Qwen-MM-Plugins with a Zhipu GLM-4.6V-Flash vision backend",
   "owner": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
+  "metadata": {
+    "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
+    "version": "1.0.1"
+  },
   "plugins": [
-    { "name": "freeglm-core", "description": "…", "author": { "name": "yenns7" }, "source": "./src/capabilities/core" },
-    { "name": "freeglm-api",  "description": "…", "author": { "name": "yenns7" }, "source": "./src/capabilities/api" }
+    { "name": "freeglm-core", "source": "./src/capabilities/core", "description": "…" },
+    { "name": "freeglm-api",  "source": "./src/capabilities/api",  "description": "…" }
   ]
 }
 ```
 
-> The canonical marketplace lives at `.claude-plugin/marketplace.json`; `.zcode-plugin/marketplace.json`
-> is generated from it (same schema). The `scripts/check_manifests.py` CI gate keeps every
-> per-platform manifest in sync with `pyproject.toml`.
+> The canonical marketplace lives at `.claude-plugin/marketplace.json`; the checked-in
+> `.zcode-plugin/marketplace.json` mirrors its metadata and plugin entries. The
+> `scripts/check_manifests.py` CI gate checks the mirror, every platform manifest, the immutable
+> release ref, and `pyproject.toml` together.
 
 ### 2. Per-capability manifest (`.zcode-plugin/plugin.json`)
 
@@ -53,14 +56,14 @@ Each capability folder carries one. For a server capability (`api` example):
 ```json
 {
   "name": "freeglm-api",
-  "version": "1.0.0",
-  "description": "FreeGLM api — cloud APIs for understanding media: VL (vision_chat / ocr / grounding), Omni A/V, ASR, segmentation (SAM3), exposed as an MCP server.",
+  "version": "1.0.1",
+  "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope.",
   "author": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
   "skills": "./skill",
   "mcpServers": {
     "freeglm-api": {
       "command": "uvx",
-      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@main", "freeglm-api"]
+      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-api"]
     }
   }
 }
@@ -72,8 +75,15 @@ For a skill-only capability (`edu-agent`), omit `mcpServers` — only `skills` i
 
 - **`skills`** — copied/registered so the model knows the toolset exists (the `SKILL.md` inside).
 - **`mcpServers`** — a stdio MCP server, launched on demand by `uvx`. First launch resolves
-  `freeglm[<cap>]` from the git URL and installs its Python extras into an isolated cache — no
+  `freeglm[<cap>]` from the `v1.0.1` git tag and installs its Python extras into an isolated cache — no
   manual pip. `blender` / `freecad` additionally pass `FREEGLM_AUTOLAUNCH=1` in `env`.
+
+### 4. Install in ZCode
+
+ZCode has no plugin CLI on `PATH`. Open a workspace, then go to **Settings → Plugins → Create →
+Add marketplace**, enter `https://github.com/yenns7/freeglm.git`, find the desired
+`freeglm-<cap>` entry under Personal, and click **Install**. Refresh the marketplace from the
+marketplace source panel after a new release is published.
 
 ## Replicating for another harness
 
@@ -88,22 +98,10 @@ For a skill-only capability (`edu-agent`), omit `mcpServers` — only `skills` i
 > Rule of thumb from the upstream project: **one marketplace, per-harness manifests, zero code
 > changes** when adding a platform.
 
-## ZCode quick-start prompt
+## Agent routing policy
 
-Paste this into the ZCode agent after installing the `freeglm-*` capabilities to make it route
-media through the tools (instead of any built-in OCR) and pick the right VL backend:
-
-```text
-You have FreeGLM MCP tools available. Rules:
-1. To read / OCR / caption / ground any image or video, call the freeglm-* MCP tools
-   (vision_chat / ocr / grounding). Never fall back to the harness's built-in image/OCR.
-2. VL tools have two backends, auto-selected: Zhipu GLM-4.6V-Flash when only ZHIPU_API_KEY is
-   set (model glm-4.6v-flash, endpoint open.bigmodel.cn); DashScope Qwen otherwise
-   (model qwen3.7-plus). Force per call with provider="zhipu" / "dashscope".
-3. Zhipu has no video modality — videos are sampled into image frames locally; keep
-   video_max_frames ≈ video seconds (~1fps).
-4. Omni A/V, ASR, segmentation, generation and search need DASHSCOPE_API_KEY / SERPER_API_KEY.
-5. Use dry_run=true once per workflow to preview the request payload.
-```
-
-(Chinese version in `README.zh.md` → 给 Agent 的快速接入提示词.)
+After installation, use the shared [Agent integration and routing policy](agent-integration.md)
+instead of maintaining a ZCode-specific prompt. It requires live Skill/MCP inventory checks,
+routes tasks to the owning capability, forbids passing credentials through prompts or tool
+arguments, covers private-media consent, and uses preview/`dry_run` only when the live tool schema
+advertises it and a concrete diagnostic need exists.

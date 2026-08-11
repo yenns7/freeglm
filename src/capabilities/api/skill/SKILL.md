@@ -10,10 +10,14 @@ You have `freeglm-api` MCP tools available. They call external models/services t
 - **VL model** (OpenAI-compatible endpoint): `vision_chat`, `ocr`, `grounding`. Two backends:
   - **DashScope Qwen** (default; `qwen3.7-plus`) — needs `DASHSCOPE_API_KEY`.
   - **Zhipu GLM** (`glm-4.6v-flash`, the fast GLM vision model) — needs `ZHIPU_API_KEY`. Selected automatically when only `ZHIPU_API_KEY` is set, or explicitly per call with `provider="zhipu"`.
-- **Omni model** (Qwen-Omni — reads video frames **and** the embedded audio track together, so one call reasons over both): `omni_asr`, `omni_asr_timestamped`, `omni_multi_speaker_asr`, `omni_av_caption`, `omni_av_grounding`, `omni_av_counting`, `omni_music_caption`.
+- **Omni model** (Qwen-Omni): AV caption/grounding/counting fuse video frames with the embedded audio track; `omni_asr*` and music captioning operate on the extracted audio track: `omni_asr`, `omni_asr_timestamped`, `omni_multi_speaker_asr`, `omni_av_caption`, `omni_av_grounding`, `omni_av_counting`, `omni_music_caption`.
 - **Other services**: `transcribe_audio` (Qwen3-ASR), `segmentation` (a SAM3 server).
 
 Prefer these over manual ffmpeg/ffprobe scripting. Check the `freeglm-api` tools in your tool list for full schemas and parameters.
+
+Credentials and endpoints come only from the user's environment or `~/.freeglm/config`. Never ask
+the user to paste a key into chat and never place credentials in tool arguments. These tools send
+media to external services; for private or regulated media, confirm that transfer before calling.
 
 ## When to Use Which Tool
 
@@ -54,7 +58,7 @@ Prefer these over manual ffmpeg/ffprobe scripting. Check the `freeglm-api` tools
 
 ## Choosing between the families (do NOT overlap)
 
-- **`transcribe_audio` vs `omni_asr*`**: `transcribe_audio` uses the dedicated Qwen3-ASR service (fast, chunks long files, 27 languages) — cheapest for a straight, long-file transcription. Pick the `omni_asr*` tools when you want Omni's understanding: multi-speaker diarization, controllable word/sentence granularity, or transcription fused with visual context.
+- **`transcribe_audio` vs `omni_asr*`**: `transcribe_audio` uses the dedicated Qwen3-ASR service (fast, chunks long files, 27 languages) — use it for a straight, long-file transcription. Pick the `omni_asr*` tools for multi-speaker diarization or controllable word/sentence timestamp granularity; these ASR tools still use audio only, not visual context.
 - **`grounding` (spatial, WHERE) vs `omni_av_grounding` (temporal, WHEN)**: `grounding` draws a bounding box in a single image; `omni_av_grounding` locates a span in time. Different axes — don't substitute one for the other.
 - **`vision_chat` vs the Omni AV tools**: `vision_chat` is a general VLM over images/video frames (no audio); the Omni tools fuse frames with the audio track and return structured, timestamped output. Use Omni when audio or precise timing matters.
 

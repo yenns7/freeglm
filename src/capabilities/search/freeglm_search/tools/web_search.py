@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,6 @@ SEARCH_PARAMS = {"gl": "us", "hl": "en", "location": "United States", "num": 10}
 
 class WebSearchArgs(BaseModel):
     queries: list[str] = Field(description="List of search queries to execute.")
-    api_key: Optional[str] = Field(default=None, description="Serper API key (defaults to SERPER_API_KEY).")
 
 
 TOOL: dict[str, Any] = {
@@ -52,7 +51,7 @@ def handle(arguments: dict[str, Any]) -> list[dict[str, Any]]:
 
     api_key = resolve_serper_key(arguments)
     if not api_key:
-        return text_error("no API key. Set SERPER_API_KEY or pass api_key.")
+        return text_error("no API key. Set SERPER_API_KEY in the environment or FreeGLM config.")
 
     all_results = []
     idx = 1
