@@ -13,8 +13,10 @@ The *server* needs the `mcp` SDK to run, so this skips when it's absent.
 
 import json
 import os
+import queue
 import subprocess
 import sys
+import threading
 
 import pytest
 from conftest import CORE_SERVER_DIR
@@ -37,38 +39,96 @@ def _rpc(method: str, params: dict | None = None, id_: int | None = None) -> str
 def rpc_responses() -> dict[int, dict]:
     """Run one full handshake + tools/list against a fresh server subprocess.
 
-    All requests are written up front and stdin closed; the stdio server processes them
-    in order and exits on EOF. Returns the responses keyed by request id.
+    The initialize response is awaited before sending ``notifications/initialized`` and
+    ``tools/list``. Closing stdin immediately after a pre-written batch races the SDK's async
+    reader on fast Linux runners: EOF can cancel the queued list request after initialize. A
+    tiny reader thread gives the raw client a cross-platform timeout without relying on
+    ``select()`` (which cannot wait on subprocess pipes on Windows).
     """
-    wire = (
-        _rpc(
-            "initialize",
-            {
-                "protocolVersion": "2025-06-18",
-                "capabilities": {},
-                "clientInfo": {"name": "e2e-stdio-test", "version": "0"},
-            },
-            id_=1,
-        )
-        + _rpc("notifications/initialized")
-        + _rpc("tools/list", {}, id_=2)
-    )
-    proc = subprocess.run(
+    proc = subprocess.Popen(
         [sys.executable, CORE_SERVER_DIR],
-        input=wire.encode(),
-        capture_output=True,
-        timeout=120,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
         env=dict(os.environ),
     )
-    responses = {}
-    for line in proc.stdout.decode().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        msg = json.loads(line)  # every stdout line must be valid JSON-RPC (nothing else may leak)
-        if "id" in msg:
-            responses[msg["id"]] = msg
-    assert responses, f"no JSON-RPC responses on stdout; stderr tail: {proc.stderr.decode()[-500:]}"
+    assert proc.stdin is not None and proc.stdout is not None and proc.stderr is not None
+
+    stdout_lines: list[str] = []
+    stderr_lines: list[str] = []
+    stdout_queue: queue.Queue[str | None] = queue.Queue()
+
+    def _pump_stdout() -> None:
+        for line in proc.stdout:
+            stdout_lines.append(line)
+            stdout_queue.put(line)
+        stdout_queue.put(None)
+
+    def _pump_stderr() -> None:
+        stderr_lines.extend(proc.stderr)
+
+    stdout_thread = threading.Thread(target=_pump_stdout, daemon=True)
+    stderr_thread = threading.Thread(target=_pump_stderr, daemon=True)
+    stdout_thread.start()
+    stderr_thread.start()
+
+    responses: dict[int, dict] = {}
+
+    def _send(payload: str) -> None:
+        proc.stdin.write(payload)
+        proc.stdin.flush()
+
+    def _wait_for(response_id: int) -> None:
+        while response_id not in responses:
+            try:
+                line = stdout_queue.get(timeout=120)
+            except queue.Empty as exc:
+                raise AssertionError(
+                    f"timed out waiting for JSON-RPC id={response_id}; stderr tail: {''.join(stderr_lines)[-500:]}"
+                ) from exc
+            if line is None:
+                raise AssertionError(
+                    f"server exited before JSON-RPC id={response_id}; stderr tail: {''.join(stderr_lines)[-500:]}"
+                )
+            msg = json.loads(line.strip())
+            if "id" in msg:
+                responses[msg["id"]] = msg
+
+    try:
+        _send(
+            _rpc(
+                "initialize",
+                {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {},
+                    "clientInfo": {"name": "e2e-stdio-test", "version": "0"},
+                },
+                id_=1,
+            )
+        )
+        _wait_for(1)
+        _send(_rpc("notifications/initialized") + _rpc("tools/list", {}, id_=2))
+        _wait_for(2)
+    finally:
+        try:
+            proc.stdin.close()
+        except OSError:
+            pass
+        try:
+            proc.wait(timeout=120)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=10)
+        stdout_thread.join(timeout=10)
+        stderr_thread.join(timeout=10)
+
+    # Validate every line, not only the two responses consumed while synchronizing.
+    for raw in stdout_lines:
+        if raw.strip():
+            json.loads(raw)
+    assert responses, f"no JSON-RPC responses on stdout; stderr tail: {''.join(stderr_lines)[-500:]}"
     return responses
 
 
