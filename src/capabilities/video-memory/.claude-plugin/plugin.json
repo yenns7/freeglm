@@ -1,12 +1,12 @@
 {
   "name": "freeglm-video-memory",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "FreeGLM video-memory — hierarchical graph memory for long-video QA (Root → SuperEvent → MacroEvent → Subgraph with embedding search), exposed as an MCP server.",
   "skills": ["./skill"],
   "mcpServers": {
     "freeglm-video-memory": {
       "command": "uvx",
-      "args": ["--from", "freeglm[video-memory] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-video-memory"]
+      "args": ["--from", "freeglm[video-memory] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-video-memory"]
     }
   }
 }

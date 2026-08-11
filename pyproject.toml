@@ -90,7 +90,7 @@ addopts = "-p no:hydra_pytest"
 markers = [
     # Live API round-trips (test_api_reachability.py). Skipped automatically when the relevant
     # credential is absent; select with `-m reachability`, exclude with `-m "not reachability"`.
-    "reachability: hits real DashScope/Serper endpoints; requires credentials",
+    "reachability: hits real DashScope/Zhipu/Serper endpoints; requires credentials and explicit opt-in",
 ]
 
 # Packages live at src/capabilities/<cap>/<import_name>/ and src/{shared,mcp_framework}: map each

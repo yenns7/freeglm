@@ -246,7 +246,7 @@ def call_omni(
     from shared.retry import retry_call
 
     if api_key in ("", "EMPTY") and "dashscope" in base_url:
-        raise RuntimeError("no API key — set DASHSCOPE_API_KEY (or pass api_key)")
+        raise RuntimeError("no API key — configure DASHSCOPE_API_KEY in the environment or ~/.freeglm/config")
 
     inline = inline_b64_bytes(messages)
     if inline > OMNI_MAX_B64_BYTES:

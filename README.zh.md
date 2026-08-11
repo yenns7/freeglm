@@ -15,6 +15,7 @@ FreeGLM 是一组可按能力安装的 Agent Skills 与 MCP servers，覆盖本�
 - [📦 安装](#-安装)
 - [🔧 依赖](#-依赖)
 - [🔑 配置](#-配置)
+- [🔌 Provider 与 API 配置](docs/zh/provider-setup.md)
 - [🚀 快速开始](#-快速开始)
 - [🤖 给 Agent 的快速接入提示词](#-给-agent-的快速接入提示词)
 - [🧪 开发](#-开发)
@@ -52,7 +53,7 @@ FreeGLM 是一组可按能力安装的 Agent Skills 与 MCP servers，覆盖本�
 一个脚本搞定 **install · configure · verify · uninstall**，覆盖它支持的所有 harness（Claude Code · Codex · Qoder · OpenClaw · Qwen Code · Gemini CLI）。它底层调各 harness 自己的原生安装 —— 不重造轮子 —— 并把配置写进统一的 `~/.freeglm/config`（GUI / 终端都读），一次配好：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/v1.0.1/install.sh | bash   # 引导菜单
+curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/v1.0.2/install.sh | bash   # 引导菜单
 ```
 
 **ZCode** 不在 `PATH` 上提供插件 CLI。打开一个 workspace，然后按 **Settings → Plugins → Create → Add marketplace URL → Install** 为每项所需能力安装。仓库在 `.zcode-plugin/` 下自带 ZCode 就绪清单；精确界面流程和清单模型见 [ZCode 适配指南](docs/zh/adapting_zcode.md)。
@@ -110,7 +111,9 @@ bash install.sh configure     # 交互式：API key、端点、目录、OSS、�
 
 凭据只能保存在进程环境变量或私有的 `~/.freeglm/config` 中。绝不要把 key 粘贴进聊天、echo 到日志、提交到仓库，或作为工具参数传入。Agent 可以检查凭据是否已配置，但不得读取或显示其值。外部能力会把查询或媒体发送给所配置的服务商；处理私有材料前先查看[数据出境表](docs/zh/project-map.md#网络数据出境与凭据)。
 
-非交互 / 自动化配置与完整环境变量表见 [`docs/zh/installation.md`](docs/zh/installation.md)。
+GLM / DashScope / Serper 的安全配置、分层验收与排障见
+[Provider 与 API 配置指南](docs/zh/provider-setup.md)；非交互 / 自动化配置与环境变量表见
+[`docs/zh/installation.md`](docs/zh/installation.md)。
 
 ## 🚀 快速开始
 
@@ -177,7 +180,8 @@ bash install.sh configure     # 交互式：API key、端点、目录、OSS、�
 
 开发环境、贡献规范和检查命令见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。详细指南：
 [本地调试](docs/zh/local_development.md) · [添加能力](docs/zh/how_to_add_new_capability.md) ·
-[测试](docs/zh/testing.md) · [项目地图](docs/zh/project-map.md) · [Agent 接入](docs/zh/agent-integration.md)。
+[测试](docs/zh/testing.md) · [Provider 配置](docs/zh/provider-setup.md) ·
+[项目地图](docs/zh/project-map.md) · [Agent 接入](docs/zh/agent-integration.md)。
 
 ## 📄 License 与署名
 

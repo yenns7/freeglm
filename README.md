@@ -15,6 +15,7 @@ FreeGLM is a set of installable Agent Skills and MCP servers for local media and
 - [📦 Installation](#-installation)
 - [🔧 Dependencies](#-dependencies)
 - [🔑 Configuration](#-configuration)
+- [🔌 Provider and API setup](docs/en/provider-setup.md)
 - [🚀 Quick Start](#-quick-start)
 - [🤖 Agent Quick-Start Prompt](#-agent-quick-start-prompt)
 - [🧪 Development](#-development)
@@ -52,7 +53,7 @@ A capability = a **skill** (so the model knows the tools exist) + an optional **
 One script handles **install · configure · verify · uninstall** across every harness it supports (Claude Code · Codex · Qoder · OpenClaw · Qwen Code · Gemini CLI). It drives each harness's own native install under the hood — nothing reinvented — and writes a single shared config file (`~/.freeglm/config`) that GUI and terminal harnesses both read, so you set things up once:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/v1.0.1/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/v1.0.2/install.sh | bash
 ```
 
 **ZCode** has no plugin CLI on `PATH`. Open a workspace and use **Settings → Plugins → Create → Add marketplace URL → Install** for each required capability. The repository ships ZCode-ready manifests under `.zcode-plugin/`; see the [ZCode adaptation guide](docs/en/adapting_zcode.md) for the exact UI flow and manifest model.
@@ -111,7 +112,9 @@ bash install.sh configure
 
 Credentials must stay in the environment or the private `~/.freeglm/config` file. Never paste a key into chat, echo it to logs, commit it, or pass it as a tool argument. Agents may check whether a credential is configured, but must not read or display its value. External capabilities send queries or media to their configured providers; review the [data-egress table](docs/en/project-map.md#network-data-egress-and-credentials) before using private material.
 
-For non-interactive/automation setup and the full environment-variable catalog, see [`docs/en/installation.md`](docs/en/installation.md).
+For a safe GLM / DashScope / Serper walkthrough, layered validation, and troubleshooting, see
+[provider and API setup](docs/en/provider-setup.md). For non-interactive/automation setup and the
+environment-variable catalog, see [`docs/en/installation.md`](docs/en/installation.md).
 
 ## 🚀 Quick Start
 
@@ -179,7 +182,8 @@ You have FreeGLM capabilities available. Route each task to the owning capabilit
 Development setup, contribution guidelines, and verification commands are in
 [`CONTRIBUTING.md`](CONTRIBUTING.md). Detailed guides: [local development](docs/en/local_development.md)
 · [adding a capability](docs/en/how_to_add_new_capability.md) · [testing](docs/en/testing.md)
-· [project map](docs/en/project-map.md) · [agent integration](docs/en/agent-integration.md).
+· [provider setup](docs/en/provider-setup.md) · [project map](docs/en/project-map.md)
+· [agent integration](docs/en/agent-integration.md).
 
 ## 📄 License & Attribution
 

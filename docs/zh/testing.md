@@ -2,7 +2,7 @@
 
 [English](../en/testing.md) · **中文**
 
-`python3 -m pytest tests/`, 统一进行测试。
+`uv run --with pytest --extra all pytest -m "not reachability" tests/` 会在隔离环境中统一运行完整离线套件。
 
 对于新插件，不需要显式安装， `conftest.py` 把 `src/` 和各 `src/capabilities/<cap>/` 加进 `sys.path` 并自动发现所有 server 包，`import freeglm_<yourname>` 即可, fixtures(`sample_image` / `sample_video`)也能复用。
 
@@ -11,6 +11,9 @@
 - `test_tools.py` —— 测试core server：in-process 调 `handle()`(工具发现 / schema / read_image / read_video / budget / 时间戳回归)+ 用 MCP SDK 的 stdio client 走完整 initialize → tools/list → tools/call。
 - `test_mcp_framework.py` —— 共享框架：`tool_schema` / `build_registry` 的 schema 变换与工具发现。
 - `test_api_clients.py` —— 共享网络层(`shared.api_openai` / `api_dashscope` / `retry`)。
+- `test_api_tools.py` —— Mock Provider 调用的云端工具 schema/handler；覆盖 GLM / DashScope 路由与媒体格式回归。
+- `test_api_reachability.py` —— 智谱 GLM、DashScope、Serper 的显式 opt-in、凭据门控在线检查；普通离线套件会跳过。
+- `test_security_contract.py` —— 凭据、脱敏、私有配置、公开 schema 及安装器/运行时一致性回归。
 - `test_video_memory.py` —— 测试video memory server：没建 graph_memory.json 时返回 isError。
 - `test_build_merge.py` —— video-memory 构建：`build_graph.merge_chunks`。
 - `test_video_edit.py` —— video-edit测试：只测 schema/handler。
@@ -45,10 +48,25 @@ def test_handler():
 ## 跑
 
 ```bash
-python3 -m pytest tests/                 # 全套(缺依赖自动 skip)
-python3 -m pytest tests/test_<yourname>.py -v
-ruff format . && ruff check . --fix      # 提交前
+uv run --with pytest --extra all pytest -m "not reachability" tests/  # 完整离线套件
+uv run --with pytest --extra all pytest tests/test_<yourname>.py -v
+uvx ruff format --check path/to/changed.py && uvx ruff check .        # 提交前
 ```
+
+## Provider 在线连通性
+
+在线测试与离线套件有意分离。它们会把生成的非敏感 fixture 发给真实服务，可能消耗额度或产生费用。
+先通过 `bash install.sh configure` 配置 Key，不要把 Key 值写进命令。测试同时要求对应凭据与显式
+`FREEGLM_RUN_REACHABILITY=1` 开关：
+
+```bash
+FREEGLM_RUN_REACHABILITY=1 uv run --with pytest --extra api pytest -m reachability -k zhipu tests/test_api_reachability.py
+FREEGLM_RUN_REACHABILITY=1 uv run --with pytest --extra api pytest -m reachability -k dashscope tests/test_api_reachability.py
+FREEGLM_RUN_REACHABILITY=1 uv run --with pytest --extra search pytest -m reachability -k serper tests/test_api_reachability.py
+```
+
+测试被跳过不能作为 Provider 已通过的证据。账号配置、结果解释和排障见
+[Provider 与 API 配置指南](provider-setup.md)。
 
 ## 速查
 
@@ -56,4 +74,4 @@ ruff format . && ruff check . --fix      # 提交前
 - [ ] 有渲染 / 产出 → 素材进 `tests/assets/`(小)或 `real/`(大)+ 参数化
 - [ ] server 有协议行为 → `mcp_call` 端到端,参考 `test_video_memory.py`
 - [ ] 刻意重复文件 → `test_repo_sync.py` 加guard
-- [ ] `pytest tests/` 全绿、`ruff check .` 干净
+- [ ] 完整离线套件通过；相关且已明确授权的在线连通性测试通过；Ruff 干净

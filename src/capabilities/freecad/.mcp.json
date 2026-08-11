@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "freeglm[freecad] @ git+https://github.com/yenns7/freeglm.git@v1.0.1",
+        "freeglm[freecad] @ git+https://github.com/yenns7/freeglm.git@v1.0.2",
         "freeglm-freecad"
       ],
       "env": {"FREEGLM_AUTOLAUNCH": "1"}

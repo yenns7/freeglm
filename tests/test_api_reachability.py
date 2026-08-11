@@ -5,9 +5,8 @@ services to confirm the endpoint + credentials + model are reachable end-to-end.
 They require an explicit opt-in in addition to the relevant key, so a plain
 `pytest tests/` stays offline even on a configured developer machine.
 
-Run them explicitly with real creds:
-    FREEGLM_RUN_REACHABILITY=1 DASHSCOPE_API_KEY=... SERPER_API_KEY=... \
-        pytest -m reachability tests/
+Run them explicitly after configuring credentials through ``bash install.sh configure``:
+    FREEGLM_RUN_REACHABILITY=1 pytest -m reachability tests/test_api_reachability.py
 Skip them even when keys are present:
     pytest -m "not reachability" tests/
 
@@ -29,12 +28,17 @@ pytestmark = pytest.mark.reachability
 
 RUN_REACHABILITY = os.environ.get("FREEGLM_RUN_REACHABILITY") == "1"
 HAS_DASHSCOPE = bool(get_env("DASHSCOPE_API_KEY"))
+HAS_ZHIPU = bool(get_env("ZHIPU_API_KEY"))
 HAS_SERPER = bool(get_env("SERPER_API_KEY"))
 HAS_FFMPEG = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 
 requires_dashscope = pytest.mark.skipif(
     not RUN_REACHABILITY or not HAS_DASHSCOPE,
     reason="set FREEGLM_RUN_REACHABILITY=1 and DASHSCOPE_API_KEY to run live checks",
+)
+requires_zhipu = pytest.mark.skipif(
+    not RUN_REACHABILITY or not HAS_ZHIPU,
+    reason="set FREEGLM_RUN_REACHABILITY=1 and configure ZHIPU_API_KEY to run live checks",
 )
 requires_serper = pytest.mark.skipif(
     not RUN_REACHABILITY or not HAS_SERPER,
@@ -51,6 +55,7 @@ def _assert_reached(blocks):
     assert isinstance(blocks, list) and blocks, "handler returned no content"
     txt = _text(blocks)
     lowered = txt.lower()
+    assert not lowered.lstrip().startswith("error:"), f"provider call failed: {txt[:200]}"
     for bad in ("no api key", "cannot connect", "connection error", "invalid api", "no api-key"):
         assert bad not in lowered, f"reachability failed: {txt[:200]}"
     return txt
@@ -60,7 +65,7 @@ def _assert_reached(blocks):
 
 
 @requires_dashscope
-def test_vision_chat_reachable(sample_image):
+def test_dashscope_vision_chat_reachable(sample_image):
     from freeglm_api.vl import vision_chat
 
     blocks = vision_chat.handle({"images": [sample_image], "text": "Reply with the single word: OK", "max_tokens": 32})
@@ -69,7 +74,7 @@ def test_vision_chat_reachable(sample_image):
 
 
 @requires_dashscope
-def test_ocr_reachable(tmp_path):
+def test_dashscope_ocr_reachable(tmp_path):
     from PIL import Image, ImageDraw
 
     from freeglm_api.vl import ocr
@@ -85,7 +90,7 @@ def test_ocr_reachable(tmp_path):
 
 
 @requires_dashscope
-def test_grounding_reachable(sample_image):
+def test_dashscope_grounding_reachable(sample_image):
     import json
 
     from freeglm_api.vl import grounding
@@ -98,7 +103,7 @@ def test_grounding_reachable(sample_image):
 
 @requires_dashscope
 @pytest.mark.skipif(not HAS_FFMPEG, reason="ffmpeg/ffprobe not available")
-def test_transcribe_audio_reachable(tmp_path):
+def test_dashscope_transcribe_audio_reachable(tmp_path):
     from freeglm_api.others import asr
 
     wav = tmp_path / "tone.wav"
@@ -111,6 +116,51 @@ def test_transcribe_audio_reachable(tmp_path):
     # and returns a non-error result; we only assert it reached the service.
     blocks = asr.handle({"file_path": str(wav), "format": "text"})
     _assert_reached(blocks)
+
+
+# ── Zhipu GLM (vision_chat / ocr / grounding) ───────────────────────
+
+
+@requires_zhipu
+def test_zhipu_vision_chat_reachable(sample_image):
+    from freeglm_api.vl import vision_chat
+
+    blocks = vision_chat.handle(
+        {
+            "images": [sample_image],
+            "text": "Reply with the single word: OK",
+            "max_tokens": 32,
+            "provider": "zhipu",
+        }
+    )
+    txt = _assert_reached(blocks)
+    assert '"choices"' in txt
+
+
+@requires_zhipu
+def test_zhipu_ocr_reachable(tmp_path):
+    from PIL import Image, ImageDraw
+
+    from freeglm_api.vl import ocr
+
+    img = Image.new("RGB", (320, 120), "white")
+    ImageDraw.Draw(img).text((20, 40), "HELLO 12345", fill="black")
+    path = tmp_path / "zhipu-text.png"
+    img.save(path)
+
+    blocks = ocr.handle({"image_path": str(path), "provider": "zhipu"})
+    assert _assert_reached(blocks).strip()
+
+
+@requires_zhipu
+def test_zhipu_grounding_reachable(sample_image):
+    import json
+
+    from freeglm_api.vl import grounding
+
+    blocks = grounding.handle({"image_path": sample_image, "prompt": "the colored regions", "provider": "zhipu"})
+    result = json.loads(_assert_reached(blocks))
+    assert "detections" in result
 
 
 # ── Serper (web_search) ──────────────────────────────────────────────

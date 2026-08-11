@@ -23,7 +23,7 @@ Harnesses without a plugin marketplace register the **skill** and **MCP server**
 
 For installer automation, the public overrides are `FREEGLM_REPO`, `FREEGLM_REF`,
 `FREEGLM_NO_TUI`, and `FREEGLM_SPIN_TIMEOUT`; the older `QMP_*` names remain compatibility
-aliases. The default remote release is the immutable `v1.0.1` tag.
+aliases. The default remote release is the immutable `v1.0.2` tag.
 
 Each capability is `freeglm-<cap>` with uvx extras `[<cap>]`; in every block below, replace `<cap>` with a capability name (`core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`).
 
@@ -39,7 +39,7 @@ Claude Code can also install this way — the only difference from the marketpla
 ln -s "$(pwd)/src/capabilities/<cap>/skill" ~/.claude/skills/freeglm-<cap>
 # 2) MCP (for local code, replace --from with "$(pwd)[<cap>]")
 claude mcp add freeglm-<cap> -- \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>
 ```
 
 To switch capabilities, replace the skill path, the `[<cap>]` profile, and the entry name `freeglm-<cap>` all together with those of the target capability.
@@ -54,7 +54,7 @@ To switch capabilities, replace the skill path, the `[<cap>]` profile, and the e
   "mcp": {
     "freeglm-<cap>": {
       "type": "local",
-      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"],
+      "command": ["uvx", "--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-<cap>"],
       "enabled": true
     }
   }
@@ -83,7 +83,7 @@ Or register just the MCP server (then copy the skill into `~/.qwen/skills/freegl
 
 ```bash
 qwen mcp add freeglm-<cap> --scope user --trust --timeout 600000 \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>
 ```
 
 Headless: `qwen -p "…" --yolo -o text`. Uninstall: `qwen extensions uninstall freeglm-<cap>`.
@@ -94,7 +94,7 @@ Headless: `qwen -p "…" --yolo -o text`. Uninstall: `qwen extensions uninstall 
 
 ```bash
 gemini mcp add -s user freeglm-<cap> \
-  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>
+  uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>
 gemini skills install https://github.com/yenns7/freeglm.git --path src/capabilities/<cap>/skill --consent
 ```
 
@@ -118,7 +118,7 @@ pi install npm:pi-mcp-adapter                                               # on
   "settings": { "toolPrefix": "none" },
   "mcpServers": { "freeglm-<cap>": {
     "command": "uvx",
-    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
+    "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-<cap>"]
   } }
 }
 ```
@@ -146,7 +146,7 @@ qwenpaw skills config    # interactively check to enable
         "enabled": true,
         "transport": "stdio",
         "command": "uvx",
-        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-<cap>"]
+        "args": ["--from", "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-<cap>"]
       }
     }
   }
@@ -178,7 +178,7 @@ replicate it for another harness.
 
 ### API keys (only for API-based tools)
 
-The VL tools (`vision_chat` / `ocr` / `grounding`) need `DASHSCOPE_API_KEY` **or** `ZHIPU_API_KEY` — set only the Zhipu key and the VL tools auto-route to the GLM-4.6V-Flash backend (zero DashScope config). `transcribe_audio` and the generation tools still require `DASHSCOPE_API_KEY`. Keys are inherited from the shell environment (or `~/.freeglm/config`). The web tools (`web_search` / `web_extractor` / `image_search`) use the Serper API and require `SERPER_API_KEY` instead. Native image/video/document reading needs no key.
+The VL tools (`vision_chat` / `ocr` / `grounding`) need `DASHSCOPE_API_KEY` **or** `ZHIPU_API_KEY` — set only the Zhipu key and the VL tools auto-route to the GLM-4.6V-Flash backend (zero DashScope config). `transcribe_audio` and the generation tools still require `DASHSCOPE_API_KEY`. Keys are inherited from the shell environment (or `~/.freeglm/config`). The web tools (`web_search` / `web_extractor` / `image_search`) use the Serper API and require `SERPER_API_KEY` instead. Native image/video/document reading needs no key. Follow [provider and API setup](provider-setup.md) for account creation, hidden-input configuration, live validation, rotation, and troubleshooting.
 
 ### System tools (install manually with your system package manager)
 
@@ -192,7 +192,7 @@ The VL tools (`vision_chat` / `ocr` / `grounding`) need `DASHSCOPE_API_KEY` **or
 
 How to see which system tools are missing:
 
-- Check with uvx: `uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap> --check-system`.
+- Check with uvx: `uvx --from "freeglm[all] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap> --check-system`.
 - At server startup, if an installed extra is missing its system tool, a warning line is printed to stderr.
 - At actual tool-call time, you get a "please install X" text message, while other tools keep working.
 

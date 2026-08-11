@@ -582,7 +582,7 @@ def test_resolve_openai_endpoint_auto_never_mixes_providers(monkeypatch):
 
 
 def test_vision_chat_dry_run_zhipu_payload(monkeypatch, sample_image):
-    """Zhipu backend: dry_run payload uses GLM default + Zhipu URL, videos degrade to images."""
+    """Zhipu dry_run uses GLM defaults and samples a local video without uploading it."""
     import base64
 
     import shared.video as sv
@@ -647,18 +647,32 @@ def test_grounding_dashscope_still_sends_enable_thinking(monkeypatch, sample_ima
     assert seen.get("extra_body") == {"enable_thinking": False}
 
 
-def test_encode_video_source_zhipu_degrades_to_images(monkeypatch, sample_video):
-    """Zhipu has no video modality: even an OSS-configured env must sample frames, no video_url."""
+def test_encode_video_as_images_zhipu_local_without_oss_samples_frames(monkeypatch, sample_video):
+    """A Zhipu local file without OSS remains usable through sampled image parts."""
     from shared import oss
 
     monkeypatch.setenv("ZHIPU_API_KEY", "z-key")
+    monkeypatch.setattr(oss, "is_upload_configured", lambda: False)
+    parts = oa.encode_video_as_images(sample_video, provider="zhipu")
+    assert parts and all(part["type"] == "image_url" for part in parts)
+    assert parts[0]["image_url"]["url"].startswith("data:image/jpeg")
+
+
+def test_encode_video_as_images_zhipu_remote_url_is_native():
+    """GLM-4.6V-Flash supports a provider-reachable video_url natively."""
+    source = "https://media.example/demo.mp4"
+    assert oa.encode_video_as_images(source, provider="zhipu") == [{"type": "video_url", "video_url": {"url": source}}]
+
+
+def test_encode_video_as_images_zhipu_local_uses_oss_when_configured(monkeypatch, sample_video):
+    """Configured OSS makes a local Zhipu video provider-reachable through video_url."""
+    from shared import oss
+
+    signed = "https://bucket.example/demo.mp4?signature=redacted"
     monkeypatch.setattr(oss, "is_upload_configured", lambda: True)
-    monkeypatch.setattr(oss, "upload_and_sign", lambda *a, **k: (_ for _ in ()).throw(AssertionError("uploaded")))
-    # keep the real video.py sampling (sample_video is a real ffmpeg file)
-    part = oa.encode_video_source(sample_video, provider="zhipu")
-    assert part["type"] == "video"
-    assert "fps" not in part  # plain image parts — the wire format GLM accepts
-    assert part["video"] and part["video"][0].startswith("data:image/jpeg")
+    monkeypatch.setattr(oss, "upload_and_sign", lambda *a, **k: signed)
+    parts = oa.encode_video_as_images(sample_video, provider="zhipu")
+    assert parts == [{"type": "video_url", "video_url": {"url": signed}}]
 
 
 def test_call_openai_chat_missing_zhipu_key_guard():

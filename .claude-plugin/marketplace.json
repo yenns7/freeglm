@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     {

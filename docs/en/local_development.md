@@ -14,7 +14,7 @@ scripts/dev-install.sh core     # vision + the full visualize stack
 scripts/dev-install.sh all      # everything (incl. heavy deps like geopandas/trimesh/playwright)
 
 python -c "import freeglm_core as p; print(len(p.SPECS), 'tools')"
-python -m pytest tests/
+uv run --with pytest --extra all pytest -m "not reachability" tests/
 ```
 
 Installed into the currently active venv (uses uv when `uv` + a venv are present, otherwise pip). Only re-run it after changing dependencies.

@@ -30,6 +30,7 @@ specific provenance.
 | `.claude-plugin/`, `.zcode-plugin/`, per-capability plugin directories | Marketplace and harness registration | Descriptions must be generated from or checked against capability ownership; manifests do not redefine tool ownership |
 | `cookbooks/` | Worked examples and observed workflows | Examples must disclose network, credential and data-egress prerequisites |
 | `docs/en/`, `docs/zh/` | Installation, development, routing and architecture guidance | English and Chinese policies must remain semantically aligned |
+| `docs/*/provider-setup.md` | End-user provider onboarding, live acceptance, credential rotation, and provider-extension checklist | Keep current against official provider contracts and never include credential-value examples |
 | `tests/` | Offline contracts plus credential-gated reachability checks | A skipped live test is not evidence that an external service passed |
 | `NOTICE`, `UPSTREAM.md`, capability `NOTICE.md` files | Upstream and vendored-code provenance | Record exact source revisions and preserve required notices |
 
@@ -42,6 +43,7 @@ intentionally centralized here so the same explanation is not copied into every 
 |---|---|---|
 | `README.md` | Primary English landing page, supported capability summary, installation entry points, and safe first-run routing | Keep concise; link to this catalog for detailed ownership and exclusions |
 | `README.zh.md` | Chinese counterpart to `README.md` | Keep policy and capability claims semantically aligned with the English page |
+| `docs/*/provider-setup.md` | Bilingual GLM, DashScope, and Serper setup and validation entry point | Link from landing, installation, routing, and testing docs; preserve the credential boundary |
 | `install.sh` | Interactive source-checkout installer, profile selection, harness registration, system checks, and hidden credential configuration | Operational entry point; it must not print secrets or imply that every optional dependency is installed |
 | `.env.example` | Inventory of recognized configuration names and non-secret defaults | Documentation only; never store credential values or instruct users to expose them in chat or command output |
 | `pyproject.toml` | Python distribution metadata, dependency profiles, console entry points, package layout, and test configuration | Packaging source of truth; capability applicability stays in this catalog and each capability's tool/skill contract |

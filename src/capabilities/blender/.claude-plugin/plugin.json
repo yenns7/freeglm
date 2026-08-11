@@ -1,12 +1,12 @@
 {
   "name": "freeglm-blender",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Blender 3D modeling: drive a running Blender (execute Python, viewport screenshots, PolyHaven/Sketchfab/Hyper3D/Hunyuan3D assets) as MCP tools + a build→refine→verify skill.",
   "skills": ["./skill"],
   "mcpServers": {
     "freeglm-blender": {
       "command": "uvx",
-      "args": ["--from", "freeglm[blender] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-blender"],
+      "args": ["--from", "freeglm[blender] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-blender"],
       "env": {"FREEGLM_AUTOLAUNCH": "1"}
     }
   }

@@ -14,7 +14,7 @@ FreeGLM 是 **harness 无关**的:每个能力 = 一个 `skill/`(让模型知道
 | Qoder | Qoder 插件市场 | `.qoder-plugin/plugin.json` + `.mcp.json` |
 | OpenClaw / Qwen Code / Gemini | 原生命令或市场 | 见 `docs/zh/installation.md` |
 
-MCP server 在任何地方都从同一个不可变版本拉起 —— `uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.1" freeglm-<cap>` —— 所以适配新 harness **不需要改服务端代码，只需要改注册清单**。
+MCP server 在任何地方都从同一个不可变版本拉起 —— `uvx --from "freeglm[<cap>] @ git+https://github.com/yenns7/freeglm.git@v1.0.2" freeglm-<cap>` —— 所以适配新 harness **不需要改服务端代码，只需要改注册清单**。
 
 ## ZCode 适配是怎么接线的
 
@@ -28,7 +28,7 @@ MCP server 在任何地方都从同一个不可变版本拉起 —— `uvx --fro
   "owner": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
   "metadata": {
     "description": "FreeGLM multimodal Agent Skills + MCP servers for local media I/O, cloud understanding, search, creation, and 3D/CAD workflows",
-    "version": "1.0.1"
+    "version": "1.0.2"
   },
   "plugins": [
     { "name": "freeglm-core", "source": "./src/capabilities/core", "description": "…" },
@@ -48,14 +48,14 @@ MCP server 在任何地方都从同一个不可变版本拉起 —— `uvx --fro
 ```json
 {
   "name": "freeglm-api",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope.",
   "author": { "name": "yenns7", "url": "https://github.com/yenns7/freeglm" },
   "skills": "./skill",
   "mcpServers": {
     "freeglm-api": {
       "command": "uvx",
-      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.1", "freeglm-api"]
+      "args": ["--from", "freeglm[api] @ git+https://github.com/yenns7/freeglm.git@v1.0.2", "freeglm-api"]
     }
   }
 }
@@ -66,7 +66,7 @@ MCP server 在任何地方都从同一个不可变版本拉起 —— `uvx --fro
 ### 3. ZCode 实际装了什么
 
 - **`skills`** —— 复制/注册,让模型知道有这套工具(里面的 `SKILL.md`)。
-- **`mcpServers`** —— 一个 stdio MCP server,由 `uvx` 按需拉起。首次启动会从 `v1.0.1` git tag 解析
+- **`mcpServers`** —— 一个 stdio MCP server,由 `uvx` 按需拉起。首次启动会从 `v1.0.2` git tag 解析
   `freeglm[<cap>]` 并把它的 Python extras 装进隔离缓存 —— 无需手动 pip。`blender` / `freecad`
   额外在 `env` 里传 `FREEGLM_AUTOLAUNCH=1`。
 

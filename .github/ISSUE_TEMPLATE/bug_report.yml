@@ -37,6 +37,8 @@ body:
       label: Capability
       options:
         - core
+        - api
+        - search
         - video-memory
         - video-edit
         - blender

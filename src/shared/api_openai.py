@@ -165,8 +165,8 @@ def encode_image_source(source: str) -> dict[str, Any]:
 def _sample_local_video_frames(source: str, max_frames: int) -> tuple[list[str], float]:
     """Sample a LOCAL video into inline base64 JPEG data-URLs + the effective fps.
 
-    Shared by the Qwen ``video`` part and the Zhipu image-part expansion so both wire formats come
-    from one sampling path (probe → dynamic FPS → parallel keyframe-seek).
+    Shared by the Qwen ``video`` fallback and the Zhipu local-file fallback so both wire formats
+    come from one sampling path (probe → dynamic FPS → parallel keyframe-seek).
     """
     from shared.env import DEFAULT_FPS, TOKEN_SIZE, VIDEO_MIN_PIXELS
     from shared.image import smart_resize
@@ -179,17 +179,6 @@ def _sample_local_video_frames(source: str, max_frames: int) -> tuple[list[str],
     timestamps = [i * frame_interval for i in range(nframes)]
     frames = extract_frames_by_seeking(source, timestamps, target_h, target_w)
     return [f"data:image/jpeg;base64,{b64}" for _, b64 in frames], fps
-
-
-def _sample_remote_video_frames(source: str, max_frames: int) -> list[str]:
-    """Sample a remote video URL into inline base64 JPEG data-URLs.
-
-    ffmpeg/ffprobe read http(s) URLs directly, so this is the same sampling path as a local file —
-    probe the URL for size/duration, compute a dynamic FPS within ``max_frames``, and extract
-    keyframe-seeked frames (no temp download).
-    """
-    urls, _ = _sample_local_video_frames(source, max_frames)
-    return urls
 
 
 def encode_video_source(
@@ -212,17 +201,15 @@ def encode_video_source(
     still returns a result). ``allow_upload=False`` suppresses the upload (used by ``dry_run`` so a
     preview never touches the network).
 
-    Zhipu GLM (provider "zhipu") has no video modality: ``video_url``/``video`` parts are rejected
-    with 4xx errors, so frames are always emitted as plain ``image_url`` parts and uploaded URLs
-    degrade to frames too (checked against the caller's ``model`` cap).
+    Both built-in providers accept remote ``video_url`` content. A local file is uploaded to the
+    user's configured OSS for the same native path; without OSS it falls back to inline sampled
+    frames. This keeps local-only setup useful without claiming that the remote provider lacks a
+    video modality. ``dry_run`` always takes the no-upload fallback.
     """
     if is_url(source):
-        if _is_zhipu_provider(provider):
-            # GLM can't ingest video_url; sample from the remote stream locally.
-            return {"type": "video", "video": _sample_remote_video_frames(source, max_frames)}
         return {"type": "video_url", "video_url": {"url": source}}
 
-    if allow_upload and not _is_zhipu_provider(provider):
+    if allow_upload:
         from shared import oss
 
         if oss.is_upload_configured():
@@ -241,7 +228,8 @@ def encode_video_source(
 
     urls, fps = _sample_local_video_frames(source, max_frames)
     if _is_zhipu_provider(provider):
-        # GLM has no video modality — pass the sampled frames as plain images.
+        # Zhipu's native video path needs a provider-reachable URL. Without OSS, keep local files
+        # usable by expanding their sampled frames into image parts in encode_video_as_images().
         return {"type": "video", "video": urls}
     return {"type": "video", "video": urls, "fps": round(fps, 2)}
 
@@ -256,16 +244,28 @@ def encode_video_as_images(
 ) -> list[dict[str, Any]]:
     """Video → a list of OpenAI-style content parts, for building a message content array.
 
-    On Zhipu GLM (no video modality, ``video``/``video_url`` parts are rejected) each sampled frame
-    becomes its own ``image_url`` part — the only media format GLM accepts. On DashScope this is the
-    single video part, i.e. ``[encode_video_source(...)]``.
+    Remote URLs, and local files uploaded to the user's configured OSS, stay as one native
+    ``video_url`` part on both built-in providers. A Zhipu local file without OSS expands into
+    ``image_url`` frames because a local path is not reachable by the cloud endpoint. DashScope's
+    local fallback remains one inline ``video`` part.
     """
     if _is_zhipu_provider(provider):
-        urls = (
-            _sample_remote_video_frames(source, max_frames)
-            if is_url(source)
-            else _sample_local_video_frames(source, max_frames)[0]
-        )
+        if is_url(source):
+            return [encode_video_source(source, max_frames, allow_upload=allow_upload, model=model, provider=provider)]
+        if allow_upload:
+            from shared import oss
+
+            if oss.is_upload_configured():
+                return [
+                    encode_video_source(
+                        source,
+                        max_frames,
+                        allow_upload=allow_upload,
+                        model=model,
+                        provider=provider,
+                    )
+                ]
+        urls = _sample_local_video_frames(source, max_frames)[0]
         return [{"type": "image_url", "image_url": {"url": u}} for u in urls]
     return [encode_video_source(source, max_frames, allow_upload=allow_upload, model=model, provider=provider)]
 
@@ -289,9 +289,9 @@ def call_openai_chat(
     # only guard the known DashScope and Zhipu endpoints.
     if api_key in ("", "EMPTY"):
         if "dashscope" in base_url:
-            raise RuntimeError("no API key — set DASHSCOPE_API_KEY (or pass api_key)")
+            raise RuntimeError("no API key — configure DASHSCOPE_API_KEY in the environment or ~/.freeglm/config")
         if "bigmodel.cn" in base_url:
-            raise RuntimeError("no API key — set ZHIPU_API_KEY (or pass api_key)")
+            raise RuntimeError("no API key — configure ZHIPU_API_KEY in the environment or ~/.freeglm/config")
 
     import openai
     from openai import OpenAI
