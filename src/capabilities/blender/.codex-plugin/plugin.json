@@ -1,7 +1,0 @@
-{
-  "name": "freeglm-blender",
-  "version": "1.0.0",
-  "description": "Blender 3D modeling: drive a running Blender (execute Python, viewport screenshots, PolyHaven/Sketchfab/Hyper3D/Hunyuan3D assets) as MCP tools + a build→refine→verify skill.",
-  "skills": "./skill",
-  "mcpServers": "./.mcp.json"
-}

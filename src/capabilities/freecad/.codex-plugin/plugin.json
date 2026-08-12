@@ -1,7 +1,0 @@
-{
-  "name": "freeglm-freecad",
-  "version": "1.0.0",
-  "description": "FreeCAD parametric CAD: create/edit objects, execute Python, named-view screenshots, parts library, and CalculiX FEM as MCP tools + a skill.",
-  "skills": "./skill",
-  "mcpServers": "./.mcp.json"
-}

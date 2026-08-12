@@ -1,8 +1,0 @@
-{
-  "name": "freeglm-video-edit",
-  "displayName": "FreeGLM Video Edit",
-  "version": "1.0.0",
-  "description": "Editing-director skill for real-footage video: taste contract + looks library, footage craft (pacing/beat-sync/sound/grading), HyperFrames pipeline handoff, verified measurement scripts, evidence-based independent review.",
-  "skills": "./skill",
-  "mcp": ".mcp.json"
-}

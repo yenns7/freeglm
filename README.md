@@ -1,186 +1,84 @@
-# FreeGLM
+# vision-mcp
 
-**English** · [中文](README.zh.md)
+极简视觉 MCP server：**让纯文本模型通过云端视觉模型"看图"**。
 
-*“眼贴膜” — because it makes your agent see.* 😌
+所有工具都只返回**文字**——图片在云端视觉模型处理，模型侧永远只收到文本。
+因此对不支持图像输入的模型（如 deepseek-v4-flash）100% 可用，也兼容任何支持视觉的模型。
 
-Native multimodal plugins for vision-language models — forked from [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0), with a first-class **Zhipu GLM-4.6V-Flash** vision backend added alongside the original DashScope Qwen one. Make any agent harness multimodal-native, and let it pick the cheapest fast backend automatically.
+## 工具
 
-## Contents
+| 工具 | 作用 |
+|---|---|
+| `vision_chat(images\|videos, text, ...)` | 看图问答 / 描述（核心）；支持视频自动抽帧 |
+| `ocr(images, ...)` | 图片文字识别（原样返回） |
+| `grounding(images, ...)` | 目标定位：返回 `[{"label","bbox_2d":[x1,y1,x2,y2]}]`（0-1000 归一化坐标） |
+| `media_info(path)` | ffprobe 探测视频/音频元数据（时长/分辨率/fps/编码/音轨） |
+| `clear_memory()` | 清空当前会话的视觉问答记忆 |
 
-- [🧩 Capabilities](#-capabilities)
-- [🏗 Architecture](#-architecture)
-- [📦 Installation](#-installation)
-- [🔧 Dependencies](#-dependencies)
-- [🔑 Configuration](#-configuration)
-- [🚀 Quick Start](#-quick-start)
-- [🤖 Agent Quick-Start Prompt](#-agent-quick-start-prompt)
-- [🧪 Development](#-development)
-- [📄 License & Attribution](#-license--attribution)
+## 内置机制
 
-## 🧩 Capabilities
+1. **指数退避重试** — 429/5xx/网络错误自动等待后重试（免费 GLM 限流常态，稳定性关键）
+2. **GLM 免费家族自动兜底** — `glm-4.6v-flash` → `glm-4v-flash`（全程零费用）
+3. **视频抽帧** — ffmpeg 动态 fps 抽帧（默认 ≤12 帧），逐帧分析后汇总
+4. **图片 base64 内容哈希缓存** — `~/.cache/vision-mcp/`，同一文件不重复编码
+5. **轻量会话记忆** — 进程内保留最近 N 轮问答（默认 4），多轮追问同一张图自动带上前文；
+   `memory=false` 关闭、`clear_memory()` 清空、`VISION_MCP_MEMORY=0` 全局关
 
-Each capability is installed separately — a **skill** (so the model knows the toolset exists) plus an optional **MCP server** (the tools themselves).
+## 后端（provider）
 
-We ship [**cookbooks**](cookbooks/) of these plugins in action — each capability's cookbook (linked in the table below) has its full tool listing, setup, and worked cases. Enjoy!
-
-| Capability | What it does | Install name | Cookbook |
+| provider | 模型 | 端点 | Key |
 |---|---|---|---|
-| **core** | Local I/O plugin: read images and video in dynamic resolution, and visualize any file (e.g. docs, 3D, and more) — plus some image tools (crop, annotate, extract frames) | `freeglm-core` | [link](cookbooks/core/usage.md) |
-| **api** | Cloud APIs for understanding media, by model family. **VL** (vision chat, OCR, grounding) runs on **two backends**: DashScope Qwen (default, `qwen3.7-plus`) or **Zhipu GLM (`glm-4.6v-flash`)** — auto-selected when only `ZHIPU_API_KEY` is set, or per call via `provider="zhipu"`. Plus Omni A/V (timestamped captioning, ASR / multi-speaker diarization, temporal grounding, event counting), ASR and segmentation (SAM3) on DashScope | `freeglm-api` | [link](cookbooks/api/usage.md) |
-| **search** | Web + reverse-image search to confirm facts: web search, page extraction, reverse image search; currently supports Serper | `freeglm-search` | [link](cookbooks/search/usage.md) |
-| **video-memory** | Long-video memory: a hierarchical graph memory that powers QA over very long videos | `freeglm-video-memory` | [TBD](cookbooks/video-memory/usage.md) |
-| **video-edit** | Video editing + generation: editing workflows + image / video / audio generation | `freeglm-video-edit` | [TBD](cookbooks/video-edit/usage.md) |
-| **blender** | Blender 3D modeling: drive a **running** Blender via Python (thin client, 22 tools) — modeling / materials / lighting / rendering | `freeglm-blender` | [TBD](cookbooks/blender/usage.md) |
-| **freecad** | FreeCAD parametric CAD: drive a **running** FreeCAD (thin client, 14 tools) — modeling, property edits, STEP/STL import/export, FEM analysis | `freeglm-freecad` | [TBD](cookbooks/freecad/usage.md) |
-| **edu-agent** | Educational tutorial videos: turn a math/science problem or an image into a step-by-step Chinese explainer video / interactive page (**skill-only**, no MCP server) | `freeglm-edu-agent` | [TBD](cookbooks/edu-agent/usage.md) |
+| `zhipu` | `glm-4.6v-flash`(4.6 Flash 主选) → `glm-4v-flash`(V4 Flash) 自动兜底（全免费） | `https://open.bigmodel.cn/api/paas/v4` | `ZHIPU_API_KEY` |
+| `qwen` | `qwen3.7-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY` |
+| `auto`（默认） | 固定走 zhipu GLM 免费家族兜底链，**不切 qwen** | — | — |
+| 自定义 | 传 `base_url`+`api_key`+`model` 可接任意 OpenAI 兼容端点（含 Doubao Vision） | — | — |
 
-## 🏗 Architecture
+key 读取顺序：**环境变量 > `~/.qwen-mm-plugins/config` > 报错**。
 
-![FreeGLM Architecture](docs/assets/architecture.svg)
-
-## 📦 Installation
-
-A capability = a **skill** (so the model knows the tools exist) + an optional **MCP server** (the tools themselves, launched on demand by `uvx` — needs [uv](https://docs.astral.sh/uv/), no manual pip).
-
-### Recommended: the guided installer
-
-One script handles **install · configure · verify · uninstall** across every harness it supports (Claude Code · Codex · Qoder · OpenClaw · Qwen Code · Gemini CLI). It drives each harness's own native install under the hood — nothing reinvented — and writes a single shared config file (`~/.freeglm/config`) that GUI and terminal harnesses both read, so you set things up once:
+## 运行
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yenns7/freeglm/main/install.sh | bash
+# 作为 MCP server（stdio），由 Agent 拉起：
+python vision_server.py
+
+# 依赖：仅 mcp + openai
+pip install mcp openai
 ```
 
-**ZCode** has no CLI on `PATH`, so it's a one-shot manual step instead: add this repo as a plugin marketplace and install each capability from the ZCode UI (`marketplace add https://github.com/yenns7/freeglm.git` → `install freeglm-core@freeglm`). The repo ships zcode-ready manifests (`.zcode-plugin/`); full guide in [docs/en/adapting_zcode.md](docs/en/adapting_zcode.md).
+任意支持 MCP 的 Agent 都能接入，只需注册一个 stdio server：
+`python /path/to/vision_server.py`
 
-Or run one action at a time — `bash install.sh install` / `configure` / `verify` / `uninstall` (what `configure` and `verify` do is detailed under [Configuration](#-configuration) and [Dependencies](#-dependencies)).
+### ZCode 接入（已配置好）
 
-**Windows x64:** use WSL2 (Ubuntu recommended) and clone the repository inside your WSL
-home directory (for example `~/code`), rather than under a mounted Windows drive such as
-`/mnt/c`. Then run the same commands there. WSL2 is currently the only supported Windows
-environment; native Windows has not yet been validated. See the concise
-[Windows notes](docs/en/installation.md#windows-wsl2).
+单一插件市场 `vision-mcp`，插件名 `vision-mcp`，重启 ZCode 后即可用。
+旧的双插件（qwen-mm-plugins-core / api）已移除，备份在
+`~/.zcode/cli/plugins/backup-qwen-mm-plugins-*`。
 
-### By hand (per-harness)
+## 使用示例（发给 agent 的话术）
 
-Prefer your harness's own commands — or you're on opencode / pi / QwenPaw, which the installer doesn't cover? Register the skill + MCP yourself.
+> 看下这张截图：`vision_chat(images=["/path/to/s.png"], text="这是什么界面？列出全部文字")`
+>
+> 识别这张图片文字：`ocr(images=["/path/to/doc.png"])`
+>
+> 看这个视频：`vision_chat(videos=["/path/to/clip.mp4"], text="视频里发生了什么？")`
+>
+> 定位图中物体：`grounding(images=["/path/to/photo.png"], text="找到所有车辆")`
+>
+> 用千问看这张图：`vision_chat(images=[...], provider="qwen")`
 
-**Plugin-marketplace harnesses** (Claude Code · Qoder · Codex · OpenClaw · Qwen Code) — add the marketplace, then install a capability (replace `<cap>` with `core` / `api` / `search` / `video-memory` / `video-edit` / `blender` / `freecad`). Install `core` by default — it's the local-I/O base every other capability builds on — plus whichever others you need:
+## 环境变量
 
-```bash
-# Claude Code
-claude   plugin  marketplace add https://github.com/yenns7/freeglm.git
-claude   plugin  install       freeglm-<cap>@freeglm
-# Qoder
-qodercli plugins marketplace add https://github.com/yenns7/freeglm.git
-qodercli plugins install       freeglm-<cap>@freeglm
-# Codex
-codex    plugin  marketplace add https://github.com/yenns7/freeglm.git
-codex    plugin  add           freeglm-<cap>@freeglm
-# OpenClaw
-openclaw plugins install       freeglm-<cap> --marketplace https://github.com/yenns7/freeglm.git
-# Qwen Code
-qwen extensions install https://github.com/yenns7/freeglm.git:freeglm-<cap> --consent
-```
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `VISION_MCP_MEMORY` | `1` | `0` 关闭会话记忆 |
+| `VISION_MCP_MEMORY_ROUNDS` | `4` | 记忆轮数 |
+| `VISION_MCP_MAX_FRAMES` | `12` | 视频抽帧上限（最大 64） |
 
-`marketplace add` also accepts a local repo path; re-running is safe. On **codex**, `marketplace add` does **not** refresh an already-added marketplace, so run `codex plugin marketplace upgrade freeglm` before `plugin add` to pick up newly-published capabilities.
+## 注意
 
-**Other harnesses** (Gemini CLI · opencode · pi · QwenPaw · **ZCode** · …) register the skill + MCP in their own config — exact per-harness blocks are in [`docs/en/installation.md`](docs/en/installation.md) and the [ZCode adaptation guide](docs/en/adapting_zcode.md). Easiest of all: **just ask the agent** — "install `freeglm-<cap>`".
-
-## 🔧 Dependencies
-
-`uvx` installs the Python dependencies for the chosen profile on first launch — no manual pip. The only things you install yourself are **system tools**: `ffmpeg` (video / audio), plus optional `libreoffice` / `blender` / `texlive` / `chromium` for `visualize`. Run `bash install.sh verify` to self-test what's installed — it confirms your API key and reports any missing system tools (fetching each capability's env and running `--check-system` under the hood). Full system-tool table, the edu-agent (skill-only) setup, and the blender/freecad thin-client notes: see [`docs/en/installation.md`](docs/en/installation.md).
-
-## 🔑 Configuration
-
-The API-based tools need a key — native image / video / document reading doesn't:
-
-- `ZHIPU_API_KEY` — the **GLM-4.6V-Flash** vision backend for `vision_chat` / `ocr` / `grounding`. Set it alone and the VL tools route to Zhipu automatically (no DashScope key needed). Optional: `ZHIPU_BASE_URL`, `ZHIPU_VISION_MODEL`
-- `DASHSCOPE_API_KEY` — `vision_chat` / `ocr` / `grounding` (Qwen backend) / `transcribe_audio` / Omni audio-video understanding / generation / video-memory build
-- `SERPER_API_KEY` — `web_search` / `web_extractor` / `image_search`
-
-Export them in your shell, or persist them to `~/.freeglm/config` (read whenever a var isn't already in the environment — so GUI-launched harnesses pick them up too). The guided installer's Configure step writes that file for you:
-
-```bash
-bash install.sh configure
-```
-
-For non-interactive/automation setup and the full environment-variable catalog, see [`docs/en/installation.md`](docs/en/installation.md).
-
-## 🚀 Quick Start
-
-Once a capability is installed, reference a file in your harness and just ask — the model picks the right tool automatically. Reading is **dynamic-resolution**: every image, video frame, and document page is auto-scaled to the VL model's patch grid, so a 4K screenshot's fine print and a tiny thumbnail both come in at the detail they need — no manual resizing.
-
-```text
-# core — read images / video / docs / 3D models (local, dynamic-resolution)
-@dashboard-4k.png      Read every number in this dashboard.
-@report.pdf            Summarize page 3.
-
-# api — cloud VL + Omni APIs. VL tools route to GLM-4.6V-Flash when only ZHIPU_API_KEY is set,
-# or to Qwen on DashScope; Omni / ASR / segmentation always use DashScope.
-@receipt.jpg           OCR this and total the line items.                          # VL (GLM or Qwen)
-@street.jpg            Draw a box around every car in the scene.                   # grounding
-@meeting.mp4           Transcribe this with speaker labels and timestamps.         # omni
-@sports-clip.mp4       Count every completed pass and list when each one occurs.   # omni
-@song.mp3              Tag the genre, mood, instruments, key, and vocal profile.   # omni
-
-# search — web + reverse-image search to confirm what's on screen
-@place.jpg             Where was this photo taken?                 # image_search + web_search
-
-# video-memory — QA over long videos; the first query auto-builds memory
-@lecture-2h.mp4        What are the main points, with timestamps?
-
-# video-edit — image / video / audio generation + editing workflows
-                       Generate a 1024×1024 image of a red panda coding at night.
-@/path/to/media        Help me edit this video down to about 3 minutes.
-
-# blender — drive a running Blender to model / texture / light / render (thin client, 22 tools)
-                       Model a low-poly wooden stool, add a warm key light, and render it.
-
-# freecad — parametric CAD in a running FreeCAD (thin client, 14 tools; STEP/STL, FEM)
-                       Model an M6 hex bolt 30 mm long and export it as STEP.
-
-# edu-agent — turn a math/science problem into a step-by-step Chinese explainer video (skill-only)
-@geometry-problem.png  Explain how to solve this as a narrated video.
-```
-
-See each capability's 🍳 [cookbook](cookbooks/) for every tool, setup, and a worked case.
-
-## 🤖 Agent Quick-Start Prompt
-
-FreeGLM is built for agents, and the fastest way to hook it up is to paste this into the agent (Claude Code / Codex / Qoder / any harness you've installed `freeglm-<cap>` on). It teaches the model the two VL backends and — importantly — that media understanding must go **through the MCP tools**, not through the harness's own built-in OCR/vision (so you get the model you configured, e.g. the free GLM-4.6V-Flash, instead of a local macOS OCR):
-
-```text
-You have FreeGLM MCP tools available. Rules:
-
-1. MEDIA ALWAYS GOES THROUGH TOOLS. To read, OCR, caption, or ground any image/video,
-   call the `freeglm-*` MCP tools (vision_chat / ocr / grounding). Never fall back to
-   your harness's built-in image/OCR capabilities for these tasks.
-
-2. VL backends (vision_chat / ocr / grounding) — two providers, selected automatically:
-   - Zhipu GLM-4.6V-Flash: the default when only ZHIPU_API_KEY is set (zero DashScope config).
-     Fast, free-tier, no thinking tokens. Model `glm-4.6v-flash`, endpoint open.bigmodel.cn.
-   - DashScope Qwen: the default otherwise (DASHSCOPE_API_KEY). Model `qwen3.7-plus`.
-   - Force a backend per call with provider="zhipu" or provider="dashscope".
-   - Zhipu has NO video modality: videos are sampled into image frames locally — that's fine,
-     keep video_max_frames within reason (frames = seconds for ~1fps).
-
-3. Everything else (Omni A/V, ASR, segmentation, generation, search) needs DASHSCOPE_API_KEY /
-   SERPER_API_KEY respectively — GLM does not cover those.
-
-4. Prefer `dry_run=true` once per workflow to preview the request payload before calling.
-```
-
-## 🧪 Development
-
-Development setup, contribution guidelines, and verification commands are in
-[`CONTRIBUTING.md`](CONTRIBUTING.md). Detailed guides: [local development](docs/en/local_development.md)
-· [adding a capability](docs/en/how_to_add_new_capability.md) · [testing](docs/en/testing.md).
-
-## 📄 License & Attribution
-
-Apache-2.0 — see [`LICENSE`](LICENSE) and the [NOTICE](NOTICE) file.
-
-This project is a **derived work** of [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) by the Qwen team (Apache-2.0) — a fork that renames the project and adds a **Zhipu GLM-4.6V-Flash** vision backend (provider routing, video-to-frames degradation, `enable_thinking` isolation, config/verify wiring) on top of the upstream VL tools. Upstream changes can be tracked via the fork relationship on GitHub.
-
-The Blender and FreeCAD capabilities vendor third-party MIT-licensed code; see [`src/capabilities/blender/NOTICE.md`](src/capabilities/blender/NOTICE.md) and [`src/capabilities/freecad/NOTICE.md`](src/capabilities/freecad/NOTICE.md) for attribution.
+- GLM 兜底链：**4.6 Flash(glm-4.6v-flash) → V4 Flash(glm-4v-flash)**，全是免费模型。
+  显式传 `glm-*` 模型也会挂上这条兜底链；`qwen`/自定义端点只试指定模型，不加别的。
+  整个流程默认只用免费 GLM 模型，不会调用 qwen 或其他模型。
+- `glm-4v-flash` 的 `max_tokens` 上限为 1024，server 会在兜底到它时自动钳制。
+- 图片支持本地路径（自动 base64）或 http(s) URL。
+- `dry_run=true` 可预览请求结构（不真实请求，不消耗额度）。
