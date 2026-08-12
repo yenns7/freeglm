@@ -33,6 +33,7 @@ vision-mcp — 极简视觉 MCP server。
 import base64
 import hashlib
 import json
+import logging
 import mimetypes
 import os
 import random
@@ -48,6 +49,14 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("vision-mcp")
+
+# 日志走 stderr：MCP stdio 传输独占 stdout，打印到 stdout 会污染协议帧。
+logger = logging.getLogger("vision-mcp")
+if not logger.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
 
 # ---- 内置后端 ----
 # 配置文件回退：环境变量缺 key 时，读 ~/.qwen-mm-plugins/config（KEY=VALUE 每行）
@@ -192,9 +201,11 @@ def probe_media(path: str) -> dict:
              "-show_format", "-show_streams", str(p)],
             capture_output=True, text=True, timeout=30, check=True,
         ).stdout
+        info = json.loads(out)
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         raise RuntimeError(f"ffprobe 失败（需要系统安装 ffmpeg）: {e}") from e
-    info = json.loads(out)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"ffprobe 输出解析失败（文件可能损坏或不是媒体文件）: {e}") from e
     streams = info.get("streams", [])
     video = next((s for s in streams if s.get("codec_type") == "video"), {})
     audio = next((s for s in streams if s.get("codec_type") == "audio"), {})
@@ -226,7 +237,8 @@ def _extract_frames(video_path: str, max_frames: int = VIDEO_MAX_FRAMES) -> list
     max_frames = min(max(1, max_frames), 64)
     # 动态 fps：目标总帧数 / 时长，clamp 到 [0.1, 10]，保证长视频也均匀覆盖
     fps = max(0.1, min(10.0, max_frames / duration))
-    work = VIDEO_WORK_DIR / f"frames-{int(time.time() * 1000)}"
+    # 用 时间戳+pid 避免同毫秒并发/残留目录冲突
+    work = VIDEO_WORK_DIR / f"frames-{int(time.time() * 1000)}-{os.getpid()}"
     work.mkdir(parents=True, exist_ok=True)
     try:
         subprocess.run(
@@ -241,11 +253,20 @@ def _extract_frames(video_path: str, max_frames: int = VIDEO_MAX_FRAMES) -> list
     if not frames:
         shutil.rmtree(work, ignore_errors=True)
         raise RuntimeError("未抽取到任何帧")
-    # 帧数超过目标时均匀抽样
-    if len(frames) > max_frames:
+    # 帧数超过目标时均匀抽样（max_frames=1 时直接取首帧，避免除零）
+    if len(frames) > max_frames and max_frames > 1:
         idxs = sorted(set(round(i * (len(frames) - 1) / (max_frames - 1)) for i in range(max_frames)))
         frames = [frames[i] for i in idxs]
-    return [str(f) for f in frames]
+    elif len(frames) > max_frames:
+        frames = frames[:max_frames]
+    paths = [str(f) for f in frames]
+    # 抽帧临时目录只在本函数内使用（_chat 会马上读盘 base64），用完全部删掉，
+    # 避免 /tmp 下积累 frames-* 目录。
+    try:
+        shutil.rmtree(work, ignore_errors=True)
+    except OSError:
+        pass
+    return paths
 
 
 def _call_with_retry(client, payload: dict, retries: int = 4, base: float = 1.5,
@@ -274,6 +295,10 @@ def _call_with_retry(client, payload: dict, retries: int = 4, base: float = 1.5,
             if not retryable or attempt >= retries:
                 raise
             wait = min(cap, base * (2 ** attempt)) * (0.5 + random.random() * 0.5)
+            logger.warning(
+                "%s 请求失败(%s:%s)，第 %d/%d 次重试，%.1fs 后重试",
+                payload["model"], status or "-", code or type(e).__name__,
+                attempt + 1, retries, wait)
             time.sleep(wait)
             attempt += 1
 
@@ -347,28 +372,30 @@ def _chat(provider: str, model: Optional[str], images: list[str], videos: list[s
             history = list(_conversations.get(mem_key, []))
     history = history[-2 * MEMORY_MAX_ROUNDS:]
 
+    def _finalize(messages: list[dict]) -> str:
+        """拼 payload、按需补 temperature、调用模型。"""
+        payload = {"model": model, "messages": messages, "max_tokens": max_tokens}
+        if temperature is not None:
+            payload["temperature"] = temperature
+        return _call_model(provider, model, base_url, api_key, payload)
+
     # 多图（含视频帧）时逐图/逐帧分析后汇总，避免一次塞太多图进单请求
     if len(image_parts) > 1:
+        n_img = len(image_parts) - len(video_frames)  # 列表前段是用户图片，后段是视频帧
         summaries = []
         for i, part in enumerate(image_parts):
             src_note = f"[画面 {i + 1}/{len(image_parts)}]" + (
-                "（视频帧）" if i < len(video_frames) else "")
+                "（视频帧）" if i >= n_img else "")
             msgs = list(history)
             msgs.append({"role": "user", "content": [
                 part, {"type": "text", "text": f"{src_note} {text}"}]})
-            payload = {"model": model, "messages": msgs, "max_tokens": max_tokens}
-            if temperature is not None:
-                payload["temperature"] = temperature
-            summaries.append(f"{src_note}\n{_call_model(provider, model, base_url, api_key, payload)}")
+            summaries.append(f"{src_note}\n{_finalize(msgs)}")
         result = "\n\n".join(summaries)
     else:
         content = list(image_parts) + [{"type": "text", "text": text}]
         msgs = list(history)
         msgs.append({"role": "user", "content": content})
-        payload = {"model": model, "messages": msgs, "max_tokens": max_tokens}
-        if temperature is not None:
-            payload["temperature"] = temperature
-        result = _call_model(provider, model, base_url, api_key, payload)
+        result = _finalize(msgs)
 
     # 记录本轮（文本摘要，不含图片 base64，避免内存膨胀）
     if memory and MEMORY_ENABLED:
@@ -383,10 +410,10 @@ def _chat(provider: str, model: Optional[str], images: list[str], videos: list[s
 
 @mcp.tool()
 def vision_chat(
-    images: list[str] = [],
+    images: Optional[list[str]] = None,
     text: str = "请详细描述这张图片的内容。",
     provider: str = "auto",
-    videos: list[str] = [],
+    videos: Optional[list[str]] = None,
     model: Optional[str] = None,
     base_url: Optional[str] = None,
     api_key: Optional[str] = None,
@@ -401,8 +428,9 @@ def vision_chat(
         images: 图片的本地文件路径或 http(s) URL 列表。
         text: 对图片的提问 / 描述指令。
         provider: 视觉后端，'auto'(默认，固定走 GLM 免费家族) / 'zhipu'(GLM 免费兜底) / 'qwen'。
-            zhipu 链路：4.6 Flash(glm-4.6v-flash) 失败 → V4 Flash(glm-4v-flash) 自动兜底，
-            全程只用免费 GLM 模型，不会调用其他模型。显式传 GLM 模型(glm-*) 也会挂上这条兜底链。
+            zhipu 链路：4.6 Flash(glm-4.6v-flash) 限流/超时重试 1~2 次后立即
+            切 V4 Flash(glm-4v-flash) 兜底，全程只用免费 GLM 模型，不会调用其他模型。
+            显式传 GLM 模型(glm-*) 也会挂上这条兜底链。
         videos: 本地视频路径列表（最多 1 个）。自动 ffmpeg 抽帧（动态 fps，默认 ≤12 帧）
             后逐帧分析并汇总。想看视频前建议先调 media_info。
         model: 显式指定视觉模型名（覆盖 provider 默认）。
@@ -413,6 +441,8 @@ def vision_chat(
         memory: 为 True 时保留会话级记忆（最近 N 轮问答），多轮追问同一张图时自动带上前文。
         dry_run: 为 True 时不真实请求，返回将发送的请求结构（调试用）。
     """
+    images = images or []
+    videos = videos or []
     if not images and not videos:
         raise ValueError("images 和 videos 至少提供其一")
     return _chat(provider, model, images, videos, text, base_url, api_key,
@@ -421,7 +451,7 @@ def vision_chat(
 
 @mcp.tool()
 def ocr(
-    images: list[str],
+    images: Optional[list[str]] = None,
     provider: str = "auto",
     model: Optional[str] = None,
     base_url: Optional[str] = None,
@@ -436,6 +466,8 @@ def ocr(
         provider: 视觉后端，'auto'(默认) / 'zhipu' / 'qwen'。
         其余参数同 vision_chat。
     """
+    if not images:
+        raise ValueError("images 至少提供一张图片")
     return _chat(
         provider, model, images, [],
         "请识别图片中的所有文字，原样输出。如果是表格请保持结构；"
@@ -446,7 +478,7 @@ def ocr(
 
 @mcp.tool()
 def grounding(
-    images: list[str],
+    images: Optional[list[str]] = None,
     text: str = "图中有什么物体？请全部列出并定位。",
     provider: str = "auto",
     model: Optional[str] = None,
@@ -466,6 +498,9 @@ def grounding(
         text: 定位指令，建议点名要找的物体。
         provider / model / base_url / api_key / max_tokens / dry_run: 同 vision_chat。
     """
+    images = images or []
+    if not images:
+        raise ValueError("images 至少提供一张图片")
     prompt = (
         f"{text}\n"
         "请只输出一个 JSON 数组，不要任何其他文字。格式：\n"
