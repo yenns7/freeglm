@@ -1,0 +1,8 @@
+{
+  "name": "freeglm-example",
+  "displayName": "FreeGLM Example",
+  "version": "1.0.2",
+  "description": "FreeGLM example — a minimal template capability (skill + MCP server) demonstrating the three tool return shapes (text / image / frames); copy it to add your own.",
+  "skills": "./skill",
+  "mcp": ".mcp.json"
+}

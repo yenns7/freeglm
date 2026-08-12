@@ -1,0 +1,7 @@
+{
+  "name": "freeglm-api",
+  "version": "1.0.2",
+  "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope.",
+  "skills": "./skill",
+  "mcpServers": "./.mcp.json"
+}

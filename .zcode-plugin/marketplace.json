@@ -1,0 +1,54 @@
+{
+  "name": "freeglm",
+  "owner": {
+    "name": "yenns7",
+    "url": "https://github.com/yenns7/freeglm"
+  },
+  "metadata": {
+    "description": "Built on Qwen-MM-Plugins: multimodal Agent Skills + MCP servers, extended with Zhipu's currently free GLM-4.6V-Flash vision backend",
+    "version": "1.0.2"
+  },
+  "plugins": [
+    {
+      "name": "freeglm-core",
+      "source": "./src/capabilities/core",
+      "description": "Local-only tools to read and visualize files, crop and annotate images, and extract video frames. Cloud OCR, grounding, segmentation, ASR, and vision chat are provided by freeglm-api."
+    },
+    {
+      "name": "freeglm-api",
+      "source": "./src/capabilities/api",
+      "description": "FreeGLM API — cloud media understanding by model family: VL vision chat, OCR, and grounding on DashScope Qwen or Zhipu GLM-4.6V-Flash; Omni A/V, ASR, and segmentation on DashScope."
+    },
+    {
+      "name": "freeglm-search",
+      "source": "./src/capabilities/search",
+      "description": "Web + reverse-image search to confirm facts: web search, page extraction, reverse image search as MCP tools; currently supports Serper."
+    },
+    {
+      "name": "freeglm-video-memory",
+      "source": "./src/capabilities/video-memory",
+      "description": "Hierarchical graph memory for long-video QA (build + query) as an MCP server."
+    },
+    {
+      "name": "freeglm-video-edit",
+      "source": "./src/capabilities/video-edit",
+      "description": "ffmpeg-based video-editing workflows (skill) + image/video/audio generation as MCP tools."
+    },
+    {
+      "name": "freeglm-edu-agent",
+      "source": "./src/capabilities/edu-agent",
+      "description": "Educational tutorial-video generator (skill only): turn a math/science problem or image into a step-by-step Chinese explainer video or interactive page."
+    },
+    {
+      "name": "freeglm-blender",
+      "source": "./src/capabilities/blender",
+      "description": "Blender 3D modeling: drive a live Blender (execute Python, screenshot the viewport, PolyHaven/Sketchfab/Hyper3D/Hunyuan3D assets) as MCP tools + a build→refine→verify skill. Needs a running Blender + addon."
+    },
+    {
+      "name": "freeglm-freecad",
+      "source": "./src/capabilities/freecad",
+      "description": "FreeCAD parametric CAD: create/edit objects, execute Python, named-view screenshots, parts library, and CalculiX FEM as MCP tools + a skill. Needs a running FreeCAD + addon."
+    }
+  ],
+  "description": "FreeGLM multimodal Agent Skills and MCP servers for ZCode"
+}
