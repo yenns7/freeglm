@@ -1,85 +1,80 @@
-# vision-mcp
+# FreeGLM
 
-极简视觉 MCP server：**让纯文本模型通过云端视觉模型"看图"**。
+A minimal vision MCP server that lets **text-only models "see" images** through a cloud vision model.
 
-所有工具都只返回**文字**——图片在云端视觉模型处理，模型侧永远只收到文本。
-因此对不支持图像输入的模型（如 deepseek-v4-flash）100% 可用，也兼容任何支持视觉的模型。
+Every tool returns **text only** — images are processed by the cloud vision model, so the calling model only ever receives text. That makes the server usable with models that do not accept image input (such as `deepseek-v4-flash`) and with any model that does.
 
-## 工具
+FreeGLM is a derived work of [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0). It keeps the upstream multimodal Agent Skills and MCP servers and adds Zhipu GLM-4.6V-Flash as a free vision backend. See [UPSTREAM.md](UPSTREAM.md) for provenance and [NOTICE](NOTICE) for attribution.
 
-| 工具 | 作用 |
+## Tools
+
+| Tool | Purpose |
 |---|---|
-| `vision_chat(images\|videos, text, ...)` | 看图问答 / 描述（核心）；支持视频自动抽帧 |
-| `ocr(images, ...)` | 图片文字识别（原样返回） |
-| `grounding(images, ...)` | 目标定位：返回 `[{"label","bbox_2d":[x1,y1,x2,y2]}]`（0-1000 归一化坐标） |
-| `media_info(path)` | ffprobe 探测视频/音频元数据（时长/分辨率/fps/编码/音轨） |
-| `clear_memory()` | 清空当前会话的视觉问答记忆 |
+| `vision_chat(images\|videos, text, ...)` | Ask questions about images or describe them (core tool); videos are sampled automatically |
+| `ocr(images, ...)` | Text recognition, returned verbatim |
+| `grounding(images, ...)` | Object localization: returns `[{"label","bbox_2d":[x1,y1,x2,y2]}]` with 0-1000 normalized coordinates |
+| `media_info(path)` | ffprobe metadata for a video or audio file (duration, resolution, fps, codec, audio tracks) |
+| `clear_memory()` | Clear the vision conversation memory for the current session |
 
-## 内置机制
+## Built-in behaviour
 
-1. **指数退避重试** — 429/5xx/网络错误自动等待后重试（免费 GLM 限流常态，稳定性关键）；
-   主选模型（4.6 Flash）只重试 1~2 次，仍失败立即切兜底模型，避免反复撞限流拖长耗时
-2. **GLM 免费家族自动兜底** — `glm-4.6v-flash` 限流/超时 → `glm-4v-flash`（全程零费用）
-3. **视频抽帧** — ffmpeg 动态 fps 抽帧（默认 ≤12 帧），逐帧分析后汇总；临时帧用完即清理
-4. **图片 base64 内容哈希缓存** — `~/.cache/vision-mcp/`，同一文件不重复编码
-5. **轻量会话记忆** — 进程内保留最近 N 轮问答（默认 4），多轮追问同一张图自动带上前文；
-   `memory=false` 关闭、`clear_memory()` 清空、`VISION_MCP_MEMORY=0` 全局关
+1. **Exponential backoff** — 429, 5xx and network errors are retried after a wait. The primary model (4.6 Flash) is retried only once or twice before falling back, so a rate limit does not stall the whole call.
+2. **Automatic fallback inside the free GLM family** — `glm-4.6v-flash` rate limited or timed out → `glm-4v-flash`. Both are free.
+3. **Video frame sampling** — ffmpeg samples frames at a dynamic fps (12 frames by default), analyses them one by one and summarizes; temporary frames are cleaned up.
+4. **Image cache keyed by content hash** — `~/.cache/vision-mcp/`, so the same file is not re-encoded.
+5. **Lightweight conversation memory** — the last N rounds (4 by default) are kept in-process, so follow-up questions about the same image carry context. Disable per call with `memory=false`, clear with `clear_memory()`, or turn it off globally with `VISION_MCP_MEMORY=0`.
 
-## 后端（provider）
+## Backends
 
-| provider | 模型 | 端点 | Key |
+| provider | Models | Endpoint | Key |
 |---|---|---|---|
-| `zhipu` | `glm-4.6v-flash`(4.6 Flash 主选) → `glm-4v-flash`(V4 Flash) 自动兜底（全免费） | `https://open.bigmodel.cn/api/paas/v4` | `ZHIPU_API_KEY` |
+| `zhipu` | `glm-4.6v-flash` (primary) → `glm-4v-flash` (fallback), both free | `https://open.bigmodel.cn/api/paas/v4` | `ZHIPU_API_KEY` |
 | `qwen` | `qwen3.7-plus` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY` |
-| `auto`（默认） | 固定走 zhipu GLM 免费家族兜底链，**不切 qwen** | — | — |
-| 自定义 | 传 `base_url`+`api_key`+`model` 可接任意 OpenAI 兼容端点（含 Doubao Vision） | — | — |
+| `auto` (default) | Stays on the free GLM fallback chain; does **not** switch to qwen | — | — |
+| custom | Pass `base_url` + `api_key` + `model` to target any OpenAI-compatible endpoint, including Doubao Vision | — | — |
 
-key 读取顺序：**环境变量 > `~/.qwen-mm-plugins/config` > 报错**。
+Keys are read from **environment variables first, then `~/.qwen-mm-plugins/config`, then an error**.
 
-## 运行
+## Run
 
 ```bash
-# 作为 MCP server（stdio），由 Agent 拉起：
+# As an MCP server over stdio, started by the agent:
 python vision_server.py
 
-# 依赖：仅 mcp + openai
+# Dependencies: mcp and openai only
 pip install mcp openai
 ```
 
-任意支持 MCP 的 Agent 都能接入，只需注册一个 stdio server：
-`python /path/to/vision_server.py`
+Any MCP-capable agent can use it; register a stdio server pointing at
+`python /path/to/vision_server.py`.
 
-### ZCode 接入（已配置好）
+## Usage examples
 
-单一插件市场 `vision-mcp`，插件名 `vision-mcp`，重启 ZCode 后即可用。
-旧的双插件（qwen-mm-plugins-core / api）已移除，备份在
-`~/.zcode/cli/plugins/backup-qwen-mm-plugins-*`。
-
-## 使用示例（发给 agent 的话术）
-
-> 看下这张截图：`vision_chat(images=["/path/to/s.png"], text="这是什么界面？列出全部文字")`
+> Look at this screenshot: `vision_chat(images=["/path/to/s.png"], text="What screen is this? List all the text")`
 >
-> 识别这张图片文字：`ocr(images=["/path/to/doc.png"])`
+> Read the text in this image: `ocr(images=["/path/to/doc.png"])`
 >
-> 看这个视频：`vision_chat(videos=["/path/to/clip.mp4"], text="视频里发生了什么？")`
+> Watch this video: `vision_chat(videos=["/path/to/clip.mp4"], text="What happens in the video?")`
 >
-> 定位图中物体：`grounding(images=["/path/to/photo.png"], text="找到所有车辆")`
+> Locate objects: `grounding(images=["/path/to/photo.png"], text="Find every car")`
 >
-> 用千问看这张图：`vision_chat(images=[...], provider="qwen")`
+> Use Qwen instead: `vision_chat(images=[...], provider="qwen")`
 
-## 环境变量
+## Environment variables
 
-| 变量 | 默认 | 说明 |
+| Variable | Default | Meaning |
 |---|---|---|
-| `VISION_MCP_MEMORY` | `1` | `0` 关闭会话记忆 |
-| `VISION_MCP_MEMORY_ROUNDS` | `4` | 记忆轮数 |
-| `VISION_MCP_MAX_FRAMES` | `12` | 视频抽帧上限（最大 64） |
+| `VISION_MCP_MEMORY` | `1` | `0` disables conversation memory |
+| `VISION_MCP_MEMORY_ROUNDS` | `4` | Number of rounds kept in memory |
+| `VISION_MCP_MAX_FRAMES` | `12` | Maximum sampled frames per video (up to 64) |
 
-## 注意
+## Notes
 
-- GLM 兜底链：**4.6 Flash(glm-4.6v-flash) → V4 Flash(glm-4v-flash)**，全是免费模型。
-  显式传 `glm-*` 模型也会挂上这条兜底链；`qwen`/自定义端点只试指定模型，不加别的。
-  整个流程默认只用免费 GLM 模型，不会调用 qwen 或其他模型。
-- `glm-4v-flash` 的 `max_tokens` 上限为 1024，server 会在兜底到它时自动钳制。
-- 图片支持本地路径（自动 base64）或 http(s) URL。
-- `dry_run=true` 可预览请求结构（不真实请求，不消耗额度）。
+- The GLM fallback chain is **4.6 Flash (`glm-4.6v-flash`) → V4 Flash (`glm-4v-flash`)**, both free. Passing a `glm-*` model explicitly attaches the same chain; `qwen` and custom endpoints only try the model you name.
+- `glm-4v-flash` caps `max_tokens` at 1024, so the server clamps the value when it falls back to that model.
+- Images can be local paths (encoded automatically) or http(s) URLs.
+- `dry_run=true` previews the request structure without sending it or spending quota.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
