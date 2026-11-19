@@ -4,6 +4,8 @@ A minimal vision MCP server that lets **text-only models "see" images** through 
 
 Every tool returns **text only** — images are processed by the cloud vision model, so the calling model only ever receives text. That makes the server usable with models that do not accept image input (such as `deepseek-v4-flash`) and with any model that does.
 
+English · [中文](README.zh.md)
+
 FreeGLM is a derived work of [Qwen-MM-Plugins](https://github.com/QwenLM/Qwen-MM-Plugins) (Apache-2.0). It keeps the upstream multimodal Agent Skills and MCP servers and adds Zhipu GLM-4.6V-Flash as a free vision backend. See [UPSTREAM.md](UPSTREAM.md) for provenance and [NOTICE](NOTICE) for attribution.
 
 ## Tools
