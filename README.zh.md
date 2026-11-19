@@ -1,6 +1,16 @@
-# FreeGLM
+<div align="center">
 
-[English](README.md) · **中文**
+**中文** · [English](./README.md)
+
+# 👁 FreeGLM
+
+#### 让纯文本模型也能"看图"的视觉 MCP server
+
+[![MCP](https://img.shields.io/badge/MCP-Server-3B82F6?style=for-the-badge)](https://modelcontextprotocol.io)
+[![Vision](https://img.shields.io/badge/Vision-GLM--4.6V--Flash-10B981?style=for-the-badge)](https://open.bigmodel.cn)
+[![License](https://img.shields.io/badge/License-Apache_2.0-8B5CF6?style=for-the-badge)](./LICENSE)
+
+</div>
 
 基于 Qwen-MM-Plugins 二次开发 · 新增智谱免费 GLM 视觉后端。
 
